@@ -1,7 +1,7 @@
-add_requires("fmt")
+add_requires("freeimage", "freetype", "glm", "libsdl", "fmt")
 set_languages("c++17")
 
-target("console")
+target("weather")
     set_kind("binary")
     add_files("src/*.cpp")
-    add_packages("libsdl", "fmt")
+    add_packages("freeimage", "freetype", "glm", "libsdl", "fmt")

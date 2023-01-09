@@ -3,6 +3,7 @@
 #include <chrono>
 #include <ctime>
 #include <string>
+#include <SDL2/SDL.h>
 
 void log(const std::string& msg)
 {
