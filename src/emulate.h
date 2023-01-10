@@ -17,30 +17,8 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
+#pragma once
 
-#include "log.h"
-#include "emulate.h"
-#include "convert_images.h"
-#include <filesystem>
+#include <string>
 
-int main(int argc, char** argv)
-{
-    std::filesystem::path cwd = std::filesystem::current_path();
-    std::string base_path = cwd.string();
-
-    if(argc > 1)
-    {
-        std::string action(argv[1]);
-        
-        if(action == "icons")
-            convert_images();
-        else
-            emulate(base_path);
-    }
-    else
-    {
-        emulate(base_path);
-    }
-
-    return 0;
-}
+void emulate(const std::string& base_path);

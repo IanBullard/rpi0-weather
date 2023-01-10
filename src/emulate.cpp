@@ -18,29 +18,20 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-#include "log.h"
-#include "emulate.h"
-#include "convert_images.h"
-#include <filesystem>
+#include <pybind11/embed.h>
+#include <fmt/core.h>
 
-int main(int argc, char** argv)
+namespace py = pybind11;
+
+void emulate(const std::string& base_path)
 {
-    std::filesystem::path cwd = std::filesystem::current_path();
-    std::string base_path = cwd.string();
+    py::scoped_interpreter guard{};
+    std::string module_path = fmt::format("{}/python");
+    py::module_ sys = py::module_::import("sys");
+    py::print(sys.attr("path"));
+    //std::string executable(fmt::format("import sys\nsys.path.insert(0, {})\nimport weather", module_path));
 
-    if(argc > 1)
-    {
-        std::string action(argv[1]);
-        
-        if(action == "icons")
-            convert_images();
-        else
-            emulate(base_path);
-    }
-    else
-    {
-        emulate(base_path);
-    }
-
-    return 0;
+    //py::exec(executable);
+    // py::object scope = py::module_::import("__main__").attr("__dict__");
+    // py::eval_file(".src/python/weather.py", scope);
 }
