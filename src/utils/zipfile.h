@@ -28,7 +28,9 @@ public:
     ZipFile(const std::string& path);
     ~ZipFile();
 
+    // get contents of file in ZipFile, must be delete[]'d
     char* contents(const std::string& path);
+    size_t size(const std::string& path);
 private:
     zip *m_zip;
 };

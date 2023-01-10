@@ -19,9 +19,11 @@
 // IN THE SOFTWARE.
 
 #include "log.h"
+#include "convert_images.h"
 
 int main(int arc, char** argv)
 {
     log("Startup");
+    convert_images();
     return 0;
 }

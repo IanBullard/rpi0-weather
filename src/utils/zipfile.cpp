@@ -89,6 +89,33 @@ char* ZipFile::contents(const std::string& path)
             zip_fread(f, results, st.size);
             zip_fclose(f);
         }
+        else
+        {
+            log(fmt::format("Cannot unzip {}", path));
+        }
+    }
+
+    return results;
+}
+
+size_t ZipFile::size(const std::string& path)
+{
+    size_t results = 0;
+
+    if(m_zip)
+    {
+        struct zip_stat st;
+        
+        zip_stat_init(&st);
+        int stat_result = zip_stat(m_zip, path.c_str(), 0, &st);
+        if(stat_result == 0)
+        {
+            results = (size_t)st.size;
+        }
+        else
+        {
+            log(fmt::format("Cannot stat {}", path));
+        }
     }
 
     return results;

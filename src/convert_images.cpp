@@ -24,17 +24,16 @@
 #include "utils/zipfile.h"
 #include <fmt/core.h>
 
+#include "log.h"
+
 Collector colors;
 
-FIBITMAP* load_image(const char* filename)
+FIBITMAP* load_image(FIMEMORY* contents)
 {
-    FREE_IMAGE_FORMAT format = FreeImage_GetFileType(filename);
-
-    FIBITMAP* bitmap = FreeImage_Load(format, filename);
-
+    FREE_IMAGE_FORMAT format = FreeImage_GetFileTypeFromMemory(contents);
+    FIBITMAP* bitmap = FreeImage_LoadFromMemory(format, contents);
     FIBITMAP* normalized = FreeImage_ConvertTo32Bits(bitmap);
     FreeImage_Unload(bitmap);
-
     return normalized;
 }
 
@@ -77,65 +76,59 @@ void save_image(const char* filename, FIBITMAP* bitmap)
     FreeImage_Unload(normalized);
 }
 
-void convert_weather_icon(const char* name)
+void convert_weather_icon(const std::string name, FIMEMORY* contents)
 {
-    std::string filename(name);
-    std::string source_folder("./images/");
-    std::string dest_folder("./out/");
+    std::string dest_folder("./assets/");
 
-    auto source = source_folder + filename;
-    auto dest = dest_folder + filename;
+    auto dest = dest_folder + name;
 
-    auto img = load_image(source.c_str());
+    auto img = load_image(contents);
     img = resize(img, 112, 112);
     img = quantize(img);
     save_image(dest.c_str(), img);
     FreeImage_Unload(img);
 }
 
-void save_palette()
+FIMEMORY* convert_to_fimem(char* data, size_t size)
 {
-    FIBITMAP* image = FreeImage_Allocate(PALETTE_SIZE, 1, 24);
-    for(int i = 0; i < PALETTE_SIZE; ++i)
-    {
-        FreeImage_SetPixelColor(image, i, 0, &inky_palette[i]);
-    }
-    save_image("./out/palette.png", image);
-    FreeImage_Unload(image);
+    FIMEMORY* results = FreeImage_OpenMemory((BYTE*)data, (size_t)size);
+    return results;
 }
 
-void convert_to_seven_color()
+bool convert_image(ZipFile* zip, const std::string& path, const std::string& file)
 {
-    /*
-    for each y from top to bottom do
-        for each x from left to right do
-            oldpixel := pixels[x][y]
-            newpixel := find_closest_palette_color(oldpixel)
-            pixels[x][y] := newpixel
-            quant_error := oldpixel - newpixel
-            pixels[x + 1][y    ] := pixels[x + 1][y    ] + quant_error × 7 / 16
-            pixels[x - 1][y + 1] := pixels[x - 1][y + 1] + quant_error × 3 / 16
-            pixels[x    ][y + 1] := pixels[x    ][y + 1] + quant_error × 5 / 16
-            pixels[x + 1][y + 1] := pixels[x + 1][y + 1] + quant_error × 1 / 16
-    */
+    char* contents = zip->contents(path);
+    size_t content_size = zip->size(path);
+
+    if(!contents)
+    {
+        log(fmt::format("Cound not load {}...", path));
+        return false;
+    }
+
+    FIMEMORY* icon = convert_to_fimem(contents, content_size);
+    convert_weather_icon(file, icon);
+    FreeImage_CloseMemory(icon);
+    delete[] contents;
+
+    return true;
 }
 
 bool convert_images()
 {
     init_palette();
     FreeImage_Initialise();
-    ZipFile icons("assets/plain_weather_icons_by_merlinthered_d2lkj4g.zip");
+    ZipFile icons("source_assets/plain_weather_icons_by_merlinthered_d2lkj4g.zip");
 
     for(int i = 0; i < 48; ++i)
     {
         std::string filename = fmt::format("{:02d}.png", i);
-        convert_weather_icon(filename.c_str());
+        std::string path = fmt::format("plain_weather/flat_colorful/png/{}", filename);
+        convert_image(&icons, path, filename);
     }
-    convert_weather_icon("na.png");
+    convert_image(&icons, "plain_weather/flat_colorful/png/na.png", "na.png");
 
     FreeImage_DeInitialise();
-
-    //colors.report_palette();
 
     return true;
 }
