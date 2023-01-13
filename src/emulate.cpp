@@ -25,6 +25,7 @@
 #include <fstream>
 
 #include "log.h"
+#include "inky_mock.h"
 
 auto read_file(std::string_view path) -> std::string {
     constexpr auto read_size = std::size_t(4096);
@@ -42,6 +43,10 @@ auto read_file(std::string_view path) -> std::string {
 
 void emulate(int argc, char** argv)
 {
+    inky_setup();
+    for(int i = 0; i < 10; ++i)
+        inky_set_pixel(i, i, 6);
+    inky_display();
     PyStatus status;
 
     PyConfig config;
@@ -67,6 +72,7 @@ void emulate(int argc, char** argv)
     if (Py_FinalizeEx() < 0) {
         exit(120);
     }
+    inky_shutdown();
     return;
 
 exception:

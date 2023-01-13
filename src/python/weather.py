@@ -19,3 +19,6 @@
 # IN THE SOFTWARE.
 
 print("Success")
+
+import time
+time.sleep(5)
