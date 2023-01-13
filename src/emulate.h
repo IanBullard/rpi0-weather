@@ -19,6 +19,4 @@
 // IN THE SOFTWARE.
 #pragma once
 
-#include <string>
-
-void emulate(const std::string& base_path);
+void emulate(int argc, char** argv);

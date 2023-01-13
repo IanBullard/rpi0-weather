@@ -35,11 +35,11 @@ int main(int argc, char** argv)
         if(action == "icons")
             convert_images();
         else
-            emulate(base_path);
+            emulate(argc, argv);
     }
     else
     {
-        emulate(base_path);
+        emulate(argc, argv);
     }
 
     return 0;

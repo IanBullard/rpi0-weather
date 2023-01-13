@@ -18,20 +18,64 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-#include <pybind11/embed.h>
+#define PY_SSIZE_T_CLEAN
+#include <Python.h>
 #include <fmt/core.h>
+#include <string_view>
+#include <fstream>
 
-namespace py = pybind11;
+#include "log.h"
 
-void emulate(const std::string& base_path)
+auto read_file(std::string_view path) -> std::string {
+    constexpr auto read_size = std::size_t(4096);
+    auto stream = std::ifstream(path.data());
+    stream.exceptions(std::ios_base::badbit);
+    
+    auto out = std::string();
+    auto buf = std::string(read_size, '\0');
+    while (stream.read(& buf[0], read_size)) {
+        out.append(buf, 0, stream.gcount());
+    }
+    out.append(buf, 0, stream.gcount());
+    return out;
+}
+
+void emulate(int argc, char** argv)
 {
-    py::scoped_interpreter guard{};
-    std::string module_path = fmt::format("{}/python");
-    py::module_ sys = py::module_::import("sys");
-    py::print(sys.attr("path"));
-    //std::string executable(fmt::format("import sys\nsys.path.insert(0, {})\nimport weather", module_path));
+    PyStatus status;
 
-    //py::exec(executable);
-    // py::object scope = py::module_::import("__main__").attr("__dict__");
-    // py::eval_file(".src/python/weather.py", scope);
+    PyConfig config;
+    PyConfig_InitPythonConfig(&config);
+    //config.isolated = 1;
+
+    /* Decode command line arguments.
+       Implicitly preinitialize Python (in isolated mode). */
+    status = PyConfig_SetBytesArgv(&config, argc, argv);
+    if (PyStatus_Exception(status)) {
+        goto exception;
+    }
+
+    status = Py_InitializeFromConfig(&config);
+    if (PyStatus_Exception(status)) {
+        goto exception;
+    }
+    PyConfig_Clear(&config);
+
+    PyRun_SimpleString("import sys, os\n"
+                       "sys.path.append(os.path.abspath('./src/python'))\n"
+                       "import weather\n");
+    if (Py_FinalizeEx() < 0) {
+        exit(120);
+    }
+    return;
+
+exception:
+    PyConfig_Clear(&config);
+    if (PyStatus_IsExit(status)) {
+        // return status.exitcode;
+        return;
+    }
+    /* Display the error message and exit the process with
+       non-zero exit code */
+    Py_ExitStatusException(status);
 }

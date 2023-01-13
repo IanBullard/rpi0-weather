@@ -1,4 +1,4 @@
-requires = {"freeimage", "freetype", "glm", "libsdl", "libzip", "fmt", "pybind11", "python"}
+requires = {"freeimage", "freetype", "glm", "libsdl", "libzip", "fmt", "python"}
 add_requires(requires)
 set_languages("c++17")
 
