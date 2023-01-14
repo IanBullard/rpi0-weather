@@ -27,31 +27,58 @@
 #include "log.h"
 #include "inky_mock.h"
 
-auto read_file(std::string_view path) -> std::string {
-    constexpr auto read_size = std::size_t(4096);
-    auto stream = std::ifstream(path.data());
-    stream.exceptions(std::ios_base::badbit);
-    
-    auto out = std::string();
-    auto buf = std::string(read_size, '\0');
-    while (stream.read(& buf[0], read_size)) {
-        out.append(buf, 0, stream.gcount());
-    }
-    out.append(buf, 0, stream.gcount());
-    return out;
+static PyObject* py_inky_setup(PyObject *self, PyObject *args)
+{
+    inky_setup();
+    Py_INCREF(Py_None);
+    return Py_None;
 }
+
+static PyObject* py_inky_set_pixel(PyObject *self, PyObject *args)
+{
+    int x;
+    int y;
+    int color;
+
+    int result = PyArg_ParseTuple(args, "lll", &x, &y, &color);
+    inky_set_pixel(x, y, (uint8_t)color);
+
+    Py_INCREF(Py_None);
+    return Py_None;
+}
+
+static PyObject* py_inky_display(PyObject *self, PyObject *args)
+{
+    inky_display();
+    Py_INCREF(Py_None);
+    return Py_None;
+}
+
+static PyMethodDef mock_inky_display[] = {
+    {"setup", py_inky_setup, METH_VARARGS,
+     "."},
+    {"set_pixel", py_inky_set_pixel, METH_VARARGS,
+     "."},
+    {"show", py_inky_display, METH_VARARGS,
+     "."},
+    {NULL, NULL, 0, NULL}
+};
+
+static PyModuleDef mock_inky_module = {
+    PyModuleDef_HEAD_INIT, "mock_inky", NULL, -1, mock_inky_display,
+    NULL, NULL, NULL, NULL
+};
 
 void emulate(int argc, char** argv)
 {
     inky_setup();
-    for(int i = 0; i < 10; ++i)
+    for(int i = 0; i < 448; ++i)
         inky_set_pixel(i, i, 6);
     inky_display();
     PyStatus status;
 
     PyConfig config;
     PyConfig_InitPythonConfig(&config);
-    //config.isolated = 1;
 
     /* Decode command line arguments.
        Implicitly preinitialize Python (in isolated mode). */
