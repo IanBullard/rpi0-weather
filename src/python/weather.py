@@ -18,7 +18,13 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-print("Success")
-
 import time
+
+import mock_inky
+
+mock_inky.setup()
+for i in range(400):
+    mock_inky.set_pixel(i, i, 3)
+mock_inky.show()
+
 time.sleep(5)

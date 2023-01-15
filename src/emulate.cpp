@@ -27,14 +27,16 @@
 #include "log.h"
 #include "inky_mock.h"
 
-static PyObject* py_inky_setup(PyObject *self, PyObject *args)
+extern "C"
+{
+PyObject* py_inky_setup(PyObject *self, PyObject *args)
 {
     inky_setup();
     Py_INCREF(Py_None);
     return Py_None;
 }
 
-static PyObject* py_inky_set_pixel(PyObject *self, PyObject *args)
+PyObject* py_inky_set_pixel(PyObject *self, PyObject *args)
 {
     int x;
     int y;
@@ -47,35 +49,65 @@ static PyObject* py_inky_set_pixel(PyObject *self, PyObject *args)
     return Py_None;
 }
 
-static PyObject* py_inky_display(PyObject *self, PyObject *args)
+PyObject* py_inky_display(PyObject *self, PyObject *args)
 {
     inky_display();
     Py_INCREF(Py_None);
     return Py_None;
 }
 
-static PyMethodDef mock_inky_display[] = {
-    {"setup", py_inky_setup, METH_VARARGS,
-     "."},
-    {"set_pixel", py_inky_set_pixel, METH_VARARGS,
-     "."},
-    {"show", py_inky_display, METH_VARARGS,
-     "."},
+PyMethodDef mock_inky_display[] = {
+    {"setup", py_inky_setup, METH_VARARGS, "."},
+    {"set_pixel", py_inky_set_pixel, METH_VARARGS, "."},
+    {"show", py_inky_display, METH_VARARGS, "."},
     {NULL, NULL, 0, NULL}
 };
 
-static PyModuleDef mock_inky_module = {
+PyModuleDef mock_inky_module = {
     PyModuleDef_HEAD_INIT, "mock_inky", NULL, -1, mock_inky_display,
     NULL, NULL, NULL, NULL
 };
 
+PyObject*
+PyInit_mock_inky(void)
+{
+    log("mock_inky");
+    return PyModule_Create(&mock_inky_module);
+}
+}
+
+void emulate2(int argc, char** argv)
+{
+    wchar_t *program = Py_DecodeLocale(argv[0], NULL);
+    if (program == NULL) {
+        fprintf(stderr, "Fatal error: cannot decode argv[0]\n");
+        exit(1);
+    }
+    Py_SetProgramName(program);  /* optional but recommended */
+    Py_Initialize();
+    PyRun_SimpleString("from time import time,ctime\n"
+                       "print('Today is', ctime(time()))\n");
+    if (Py_FinalizeEx() < 0) {
+        exit(120);
+    }
+    PyMem_RawFree(program);
+}
+
 void emulate(int argc, char** argv)
 {
-    inky_setup();
-    for(int i = 0; i < 448; ++i)
-        inky_set_pixel(i, i, 6);
-    inky_display();
     PyStatus status;
+    PyPreConfig preconfig;
+    PyPreConfig_InitPythonConfig(&preconfig);
+    status = Py_PreInitialize(&preconfig);
+    if (PyStatus_Exception(status)) {
+        goto exception;
+    }
+
+    if (PyImport_AppendInittab("mock_inky", PyInit_mock_inky) == -1)
+    {
+        log("Failed to create mock_inky");
+        exit(-1);
+    }
 
     PyConfig config;
     PyConfig_InitPythonConfig(&config);
@@ -93,9 +125,14 @@ void emulate(int argc, char** argv)
     }
     PyConfig_Clear(&config);
 
-    PyRun_SimpleString("import sys, os\n"
+
+    int run = PyRun_SimpleString("import sys, os\n"
                        "sys.path.append(os.path.abspath('./src/python'))\n"
                        "import weather\n");
+    if (run < 0)
+    {
+        log("Failed to run app");
+    }
     if (Py_FinalizeEx() < 0) {
         exit(120);
     }
