@@ -19,81 +19,190 @@
 # IN THE SOFTWARE.
 
 import time
-
-import mock_inky
 import sqlite3
 import os
-
-import imageio.v3 as iio
 import numpy
 
-def blit(pos_x, pos_y, width, height, data):
-    for y in range(height):
-        for x in range(width):
-            color = data[x + y * width]
-            if color != 7:
-                mock_inky.set_pixel(pos_x + x, pos_y + y, data[x + y * width])
-
-def draw_rectangle(pos_x, pos_y, width, height, color):
-    for y in range(height):
-        for x in range(width):
-            mock_inky.set_pixel(pos_x + x, pos_y + y, color)
-
-def draw_lineX(start_x, end_x, y, color):
-    for x in range(start_x, end_x):
-        mock_inky.set_pixel(x, y, color)
-
-def draw_liney(x, start_y, end_y, color):
-    for y in range(start_y, end_y):
-        mock_inky.set_pixel(x, y, color)
-
-_THIS_DIR = os.path.dirname(__file__)
-
-con = sqlite3.connect(f"{_THIS_DIR}/assets.db")
-
-cur = con.cursor()
-
-res = cur.execute("SELECT width, height, data FROM images WHERE id='00.png'")
-
-width, height, data = res.fetchone()
-
-mock_inky.setup()
-
-# 600x448
-draw_rectangle(0, 0, 600, 448, 0)
-blit(600-width, 0, width, height, data)
-draw_lineX(0, 600, height+1, 1)
-draw_liney(600-width-1, 0, 448, 1)
-
-mock_inky.show()
-
-time.sleep(5)
-"""
-im = iio.imread('assets/00.png')
-image = numpy.array(im, dtype=numpy.uint8)
-
-color_lookup = [
-    [0, 0, 0, 255],
-    [255, 255, 255, 255],
-    [0, 255, 0, 255],
-    [0, 0, 255, 255],
-    [255, 0, 0, 255],
-    [255, 255, 0, 255],
-    [255, 140, 0, 255],
-    [255, 255, 255, 0]
-]
+import mock_inky
 
 
-def color_to_index(color):
-    for i in range(len(color_lookup)):
-        if color[0] == color_lookup[i][0] and color[1] == color_lookup[i][1] and color[2] == color_lookup[i][2]:
-            return i
+class Image:
+    def __init__(self, id, width, height, data):
+        self._id = id;
+        self._width = width
+        self._height = height
+        self._data = numpy.fromstring(data, dtype=numpy.uint8)
+
+    @property
+    def width(self):
+        return self._width
+
+    @property
+    def height(self):
+        return self._height
+
+    @property
+    def data(self):
+        return self._data
+
+    def __str__(self):
+        result = f"{self._id} ({self.width}, {self.height})"
+        return result
 
 
-for x in range(im.shape[0]):
-    for y in range(im.shape[1]):
-        mock_inky.set_pixel(x, y, color_to_index(image[y][x]))
-mock_inky.show()
+class Glyph:
+    def __init__(self, id, width, height, top, left, advance_x, advance_y, data):
+        self._id = id
+        self._size = (width, height)
+        self._offset = (top, left)
+        self._advance = (advance_x, advance_y)
+        self._data = data
+
+    @property
+    def size(self):
+        return self._size
+
+    @property
+    def offset(self):
+        return self._offset
+
+    @property
+    def advance(self):
+        return self._advance
+
+    @property
+    def data(self):
+        return self._data
+
+    def __str__(self):
+        result = f"{self._id} size({self.size[0]}, {self.size[1]}), offset({self.offset[0]}, {self.offset[1]}) advance({self.advance[0]}, {self.advance[1]})"
+        return result
 
 
-"""
+class Font:
+    def __init__(self, id, glyphs):
+        self._id = id
+        self._glyphs = {}
+        for glyph in glyphs:
+            self._glyphs[glyph._id] = glyph
+
+    def glyph(self, code):
+        return self._glyphs[code]
+
+    def string_size(self, string):
+        width = 0
+        height = 0
+        for code in string:
+            glyph = self.glyph(code)
+            width = width + glyph.advance[0]
+            if glyph.advance[1] > height:
+                height = glyph.advance[1]
+
+        return (width, height)
+
+
+class AssetDb:
+    def __init__(self):
+        this_dir = os.path.dirname(__file__)
+        self._connection = sqlite3.connect(f"{this_dir}/assets.db")
+        self._cursor = self._connection.cursor()
+
+    def load_image(self, id):
+        res = self._cursor.execute(f"SELECT width, height, data FROM images WHERE id='{id}'")
+        width, height, data = res.fetchone()
+        return Image(id, width, height, data)
+
+    def load_font(self, id):
+        res = self._cursor.execute(f"SELECT id, width, height, top, left, advance_x, advance_y, data FROM fonts")
+        glyphs = []
+        for result in res.fetchall():
+            glyphs.append(Glyph(*result))
+        return Font(id, glyphs)
+
+
+class InkyWrapper:
+    def __init__(self, inky, setup, set_pixel, show):
+        self._inky = inky
+        self.setup = setup
+        self.set_pixel = set_pixel
+        self.show = show
+
+
+class Renderer:
+    SCREEN_WIDTH = 600
+    SCREEN_HEIGHT = 448
+
+    BLACK = 0
+    WHITE = 1
+    GREEN = 2
+    BLUE = 3
+    RED = 4
+    YELLOW = 5
+    ORANGE = 6
+    CLEAR = 7
+
+    def __init__(self, wrapper):
+        self._inky = wrapper
+        self._inky.setup()
+
+    def show(self):
+        self._inky.show()
+
+    def clear(self, color):
+        for y in range(self.SCREEN_HEIGHT):
+            for x in range(self.SCREEN_WIDTH):
+                self._inky.set_pixel(x, y, color)
+
+    def blit(self, pos_x, pos_y, image):
+        for y in range(image.height):
+            for x in range(image.width):
+                color = image.data[x + y * image.width]
+                if color != 7:
+                    self._inky.set_pixel(pos_x + x, pos_y + y, image.data[x + y * image.width])
+
+    def rectangle(self, pos_x, pos_y, width, height, color):
+        for y in range(height):
+            for x in range(width):
+                self._inky.set_pixel(pos_x + x, pos_y + y, color)
+
+    def lineX(self, start_x, end_x, y, color):
+        for x in range(start_x, end_x):
+            self._inky.set_pixel(x, y, color)
+
+    def liney(self, x, start_y, end_y, color):
+        for y in range(start_y, end_y):
+            self._inky.set_pixel(x, y, color)
+
+    def print(self, x, y, font, color, string):
+        cur_pos = (x, y)
+        for char in string:
+            glyph = font.glyph(char)
+            print(glyph)
+            for y in range(glyph.size[1]):
+                for x in range(glyph.size[0]):
+                    if glyph.data[x + y * glyph.size[0]]:
+                        self._inky.set_pixel(cur_pos[0] - glyph.offset[0] + x,
+                                             cur_pos[1] - glyph.offset[1] + y, 
+                                             color)
+            cur_pos = (cur_pos[0] + glyph.advance[0], cur_pos[1] + glyph.advance[1])
+
+
+class WeatherApp:
+    def __init__(self, inky):
+        self._render = Renderer(inky)
+        self._assets = AssetDb()
+        self._test_image = self._assets.load_image("00.png")
+        self._test_font = self._assets.load_font("test")
+
+    def update(self):
+        self._render.blit(self._render.SCREEN_WIDTH-self._test_image.width, 0, self._test_image)
+        self._render.print(5, 15, self._test_font, Renderer.RED, "This is a test")
+        self._render.show()
+
+    def run(self):
+        self.update()
+        time.sleep(5)
+
+
+app = WeatherApp(mock_inky)
+app.run()

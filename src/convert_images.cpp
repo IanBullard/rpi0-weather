@@ -38,13 +38,13 @@ FIBITMAP* load_image(FIMEMORY* contents)
     return normalized;
 }
 
-FIBITMAP* quantize(FIBITMAP* bitmap)
+void quantize_and_save(FIBITMAP* bitmap, AssetDb& db, const std::string& id)
 {
     unsigned width = FreeImage_GetWidth(bitmap);
     unsigned height = FreeImage_GetHeight(bitmap);
-    FIBITMAP* result = FreeImage_Allocate(width, height, FreeImage_GetBPP(bitmap));
     RGBQUAD in;
     int index = 0;
+    uint8_t *data = new uint8_t[width * height];
 
     for(unsigned y = 0; y < height; ++y)
     {
@@ -56,11 +56,11 @@ FIBITMAP* quantize(FIBITMAP* bitmap)
                 index = 7;
             else
                 index = convert_color(convert(in), x, y);
-            FreeImage_SetPixelColor(result, x, y, &inky_palette[index]);
+            data[x + (height-y-1) * width] = index;
         }
     }
-    FreeImage_Unload(bitmap);
-    return result;
+    db.add_image(id, width, height, (const char*)data, width * height);
+    delete[] data;
 }
 
 FIBITMAP* resize(FIBITMAP* bitmap, size_t target_width, size_t target_height)
@@ -93,8 +93,7 @@ void convert_weather_icon(const std::string name, FIMEMORY* contents, AssetDb& d
 {
     auto img = load_image(contents);
     img = resize(img, 112, 112);
-    img = quantize(img);
-    save_image(name.c_str(), img, db);
+    quantize_and_save(img, db, name);
     FreeImage_Unload(img);
 }
 

@@ -27,7 +27,7 @@
 #include "log.h"
 #include "utils/zipfile.h"
 
-const std::string font_characters("`1234567890-=~!@#$%^&*()_+qwertyuiop[]\\QWERTYUIOP{}|asdfghjkl;'ASDFGHJKL:\"zxcvbnm,./ZXCVBNM<>?");
+const std::string font_characters("`1234567890-=~!@#$%^&*()_+qwertyuiop[]\\QWERTYUIOP{}|asdfghjkl;'ASDFGHJKL:\"zxcvbnm,./ZXCVBNM<>? ");
 
 bool convert_font(AssetDb& db)
 {
@@ -107,8 +107,8 @@ bool convert_font(AssetDb& db)
 
             int left = face->glyph->bitmap_left;
             int top = face->glyph->bitmap_top;
-            int advance_x = face->glyph->advance.x;
-            int advance_y = face->glyph->advance.y;
+            int advance_x = face->glyph->advance.x >> 6;
+            int advance_y = face->glyph->advance.y >> 6;
             char* data = new char[mono.width * mono.rows];
             
             for(int y = 0; y < mono.rows; ++y)
@@ -118,7 +118,7 @@ bool convert_font(AssetDb& db)
                     data[x + y * mono.width] = mono.buffer[x + y * mono.pitch];
                 }
             }
-            db.add_font(fmt::format("{}", c), mono.width, mono.rows, top, left, advance_x, advance_y, data, mono.width * mono.rows);
+            db.add_font(fmt::format("{}", c), mono.width, mono.rows, left, top, advance_x, advance_y, data, mono.width * mono.rows);
             delete[] data;
         }
     }
