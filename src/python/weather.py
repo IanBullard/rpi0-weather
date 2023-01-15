@@ -21,9 +21,14 @@
 import time
 
 import mock_inky
+import sqlite3
+import os
 
 import imageio.v3 as iio
 import numpy
+
+_THIS_DIR = os.path.dirname(__file__)
+# con = sqlite3.connect("test.db")
 
 """
 im = iio.imread('assets/00.png')

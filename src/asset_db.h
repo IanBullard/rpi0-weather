@@ -17,35 +17,24 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
+#pragma once
 
-#include "asset_db.h"
-#include "log.h"
-#include "emulate.h"
-#include "convert_font.h"
-#include "convert_images.h"
-#include <filesystem>
+#include <sqlite3.h>
+#include <string>
 
-int main(int argc, char** argv)
+class AssetDb
 {
-    std::filesystem::path cwd = std::filesystem::current_path();
-    std::string base_path = cwd.string();
-    AssetDb assets;
+public:
+    AssetDb();
+    ~AssetDb();
 
-    if(argc > 1)
-    {
-        std::string action(argv[1]);
-        
-        if(action == "icons")
-            convert_images(assets);
-        if(action == "fonts")
-            convert_font();
-        else
-            emulate(argc, argv);
-    }
-    else
-    {
-        emulate(argc, argv);
-    }
+    void reset_images();
+    void add_image(const std::string id, int width, int height, const char *data);
 
-    return 0;
-}
+    void reset_fonts();
+
+private:
+    sqlite3 *m_db;
+
+    bool simple_sql(const char* sql);
+};

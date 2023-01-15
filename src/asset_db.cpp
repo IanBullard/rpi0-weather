@@ -19,33 +19,47 @@
 // IN THE SOFTWARE.
 
 #include "asset_db.h"
+
 #include "log.h"
-#include "emulate.h"
-#include "convert_font.h"
-#include "convert_images.h"
-#include <filesystem>
 
-int main(int argc, char** argv)
+AssetDb::AssetDb()
+    : m_db(nullptr)
 {
-    std::filesystem::path cwd = std::filesystem::current_path();
-    std::string base_path = cwd.string();
-    AssetDb assets;
-
-    if(argc > 1)
+    int rc = sqlite3_open("src/python/assets.db", &m_db);
+    if(rc)
     {
-        std::string action(argv[1]);
-        
-        if(action == "icons")
-            convert_images(assets);
-        if(action == "fonts")
-            convert_font();
-        else
-            emulate(argc, argv);
+        log("Could not open asset database");
+        sqlite3_close(m_db);
     }
-    else
-    {
-        emulate(argc, argv);
-    }
+}
+AssetDb::~AssetDb()
+{
+    sqlite3_close(m_db);
+}
 
-    return 0;
+void AssetDb::reset_images()
+{
+    if(this->simple_sql("DROP TABLE IF EXISTS images"))
+        this->simple_sql("CREATE TABLE images(id TEXT PRIMARY KEY, width INT, height INT, data BLOB)");
+}
+
+void AssetDb::add_image(const std::string id, int width, int height, const char *data)
+{
+    this->simple_sql("INSERT INTO images VALUES (");
+}
+
+void AssetDb::reset_fonts()
+{
+    if(this->simple_sql("DROP TABLE IF EXISTS fonts"))
+        this->simple_sql("CREATE TABLE fonts(id TEXT PRIMARY KEY, width INT, height INT, top INT, left INT, advance_x INT, advance_y INT, data BLOB)");
+}
+
+bool AssetDb::simple_sql(const char* sql)
+{
+    int result = sqlite3_exec(m_db, sql, nullptr, nullptr, nullptr);
+    if(result)
+    {
+        log(fmt::format("Failed SQL statement: {}", sql));
+    }
+    return result == 0;
 }

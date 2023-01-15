@@ -19,4 +19,6 @@
 // IN THE SOFTWARE.
 #pragma once
 
-bool convert_images();
+#include "asset_db.h"
+
+bool convert_images(AssetDb& db);

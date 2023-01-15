@@ -24,6 +24,7 @@
 #include "utils/zipfile.h"
 #include <fmt/core.h>
 
+#include "convert_images.h"
 #include "log.h"
 
 Collector colors;
@@ -114,8 +115,9 @@ bool convert_image(ZipFile* zip, const std::string& path, const std::string& fil
     return true;
 }
 
-bool convert_images()
+bool convert_images(AssetDb& db)
 {
+    db.reset_images();
     init_palette();
     FreeImage_Initialise();
     ZipFile icons("source_assets/plain_weather_icons_by_merlinthered_d2lkj4g.zip");
