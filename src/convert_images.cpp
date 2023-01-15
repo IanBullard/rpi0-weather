@@ -70,23 +70,31 @@ FIBITMAP* resize(FIBITMAP* bitmap, size_t target_width, size_t target_height)
     return result;
 }
 
-void save_image(const char* filename, FIBITMAP* bitmap)
+void save_image(const char* filename, FIBITMAP* bitmap, AssetDb& db)
 {
     FIBITMAP* normalized = FreeImage_ConvertTo32Bits(bitmap);
-    FreeImage_Save(FIF_PNG, normalized, filename);
+    int width = FreeImage_GetWidth(bitmap), height = FreeImage_GetHeight(bitmap);
+    RGBQUAD color;
+    uint8_t *data = new uint8_t[width * height];
+    for(int y = 0; y < height; ++y)
+    {
+        for(int x = 0; x < width; ++x)
+        {
+            FreeImage_GetPixelColor(normalized, x, y, &color);
+            data[x + y * width] = closest_color(rgba8888(color.rgbRed, color.rgbGreen, color.rgbBlue, color.rgbReserved));
+        }
+    }
+    db.add_image(filename, width, height, (const char*)data, width * height);
+    delete[] data;
     FreeImage_Unload(normalized);
 }
 
-void convert_weather_icon(const std::string name, FIMEMORY* contents)
+void convert_weather_icon(const std::string name, FIMEMORY* contents, AssetDb& db)
 {
-    std::string dest_folder("./assets/");
-
-    auto dest = dest_folder + name;
-
     auto img = load_image(contents);
     img = resize(img, 112, 112);
     img = quantize(img);
-    save_image(dest.c_str(), img);
+    save_image(name.c_str(), img, db);
     FreeImage_Unload(img);
 }
 
@@ -96,7 +104,7 @@ FIMEMORY* convert_to_fimem(char* data, size_t size)
     return results;
 }
 
-bool convert_image(ZipFile* zip, const std::string& path, const std::string& file)
+bool convert_image(ZipFile* zip, const std::string& path, const std::string& file, AssetDb& db)
 {
     char* contents = zip->contents(path);
     size_t content_size = zip->size(path);
@@ -108,7 +116,7 @@ bool convert_image(ZipFile* zip, const std::string& path, const std::string& fil
     }
 
     FIMEMORY* icon = convert_to_fimem(contents, content_size);
-    convert_weather_icon(file, icon);
+    convert_weather_icon(file, icon, db);
     FreeImage_CloseMemory(icon);
     delete[] contents;
 
@@ -126,9 +134,9 @@ bool convert_images(AssetDb& db)
     {
         std::string filename = fmt::format("{:02d}.png", i);
         std::string path = fmt::format("plain_weather/flat_colorful/png/{}", filename);
-        convert_image(&icons, path, filename);
+        convert_image(&icons, path, filename, db);
     }
-    convert_image(&icons, "plain_weather/flat_colorful/png/na.png", "na.png");
+    convert_image(&icons, "plain_weather/flat_colorful/png/na.png", "na.png", db);
 
     FreeImage_DeInitialise();
 

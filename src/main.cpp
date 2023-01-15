@@ -38,7 +38,7 @@ int main(int argc, char** argv)
         if(action == "icons")
             convert_images(assets);
         if(action == "fonts")
-            convert_font();
+            convert_font(assets);
         else
             emulate(argc, argv);
     }

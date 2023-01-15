@@ -29,9 +29,10 @@ public:
     ~AssetDb();
 
     void reset_images();
-    void add_image(const std::string id, int width, int height, const char *data);
+    void add_image(const std::string id, int width, int height, const char *data, size_t size);
 
     void reset_fonts();
+    void add_font(const std::string id, int width, int height, int top, int left, int advance_x, int advance_y, const char *data, size_t size);
 
 private:
     sqlite3 *m_db;

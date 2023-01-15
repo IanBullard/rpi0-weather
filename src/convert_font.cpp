@@ -29,7 +29,7 @@
 
 const std::string font_characters("`1234567890-=~!@#$%^&*()_+qwertyuiop[]\\QWERTYUIOP{}|asdfghjkl;'ASDFGHJKL:\"zxcvbnm,./ZXCVBNM<>?");
 
-bool convert_font()
+bool convert_font(AssetDb& db)
 {
     FT_Library library;
     FT_Face face;
@@ -40,6 +40,8 @@ bool convert_font()
     open_args.driver = nullptr;
     open_args.num_params = 0;
     open_args.params = nullptr;
+
+    db.reset_fonts();
 
     auto error = FT_Init_FreeType(&library);
     if (error)
@@ -107,14 +109,17 @@ bool convert_font()
             int top = face->glyph->bitmap_top;
             int advance_x = face->glyph->advance.x;
             int advance_y = face->glyph->advance.y;
+            char* data = new char[mono.width * mono.rows];
             
             for(int y = 0; y < mono.rows; ++y)
             {
                 for(int x = 0; x < mono.width; ++x)
                 {
-                    int bit = mono.buffer[x + y * mono.pitch];
+                    data[x + y * mono.width] = mono.buffer[x + y * mono.pitch];
                 }
             }
+            db.add_font(fmt::format("{}", c), mono.width, mono.rows, top, left, advance_x, advance_y, data, mono.width * mono.rows);
+            delete[] data;
         }
     }
 
