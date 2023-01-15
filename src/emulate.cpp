@@ -71,7 +71,6 @@ PyModuleDef mock_inky_module = {
 PyObject*
 PyInit_mock_inky(void)
 {
-    log("mock_inky");
     return PyModule_Create(&mock_inky_module);
 }
 }

@@ -22,9 +22,36 @@ import time
 
 import mock_inky
 
+import imageio.v3 as iio
+import numpy
+
+"""
+im = iio.imread('assets/00.png')
+image = numpy.array(im, dtype=numpy.uint8)
+
+color_lookup = [
+    [0, 0, 0, 255],
+    [255, 255, 255, 255],
+    [0, 255, 0, 255],
+    [0, 0, 255, 255],
+    [255, 0, 0, 255],
+    [255, 255, 0, 255],
+    [255, 140, 0, 255],
+    [255, 255, 255, 0]
+]
+
+
+def color_to_index(color):
+    for i in range(len(color_lookup)):
+        if color[0] == color_lookup[i][0] and color[1] == color_lookup[i][1] and color[2] == color_lookup[i][2]:
+            return i
+
+
 mock_inky.setup()
-for i in range(400):
-    mock_inky.set_pixel(i, i, 3)
+for x in range(im.shape[0]):
+    for y in range(im.shape[1]):
+        mock_inky.set_pixel(x, y, color_to_index(image[y][x]))
 mock_inky.show()
 
 time.sleep(5)
+"""
