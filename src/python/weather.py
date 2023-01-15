@@ -27,9 +27,47 @@ import os
 import imageio.v3 as iio
 import numpy
 
-_THIS_DIR = os.path.dirname(__file__)
-# con = sqlite3.connect("test.db")
+def blit(pos_x, pos_y, width, height, data):
+    for y in range(height):
+        for x in range(width):
+            color = data[x + y * width]
+            if color != 7:
+                mock_inky.set_pixel(pos_x + x, pos_y + y, data[x + y * width])
 
+def draw_rectangle(pos_x, pos_y, width, height, color):
+    for y in range(height):
+        for x in range(width):
+            mock_inky.set_pixel(pos_x + x, pos_y + y, color)
+
+def draw_lineX(start_x, end_x, y, color):
+    for x in range(start_x, end_x):
+        mock_inky.set_pixel(x, y, color)
+
+def draw_liney(x, start_y, end_y, color):
+    for y in range(start_y, end_y):
+        mock_inky.set_pixel(x, y, color)
+
+_THIS_DIR = os.path.dirname(__file__)
+
+con = sqlite3.connect(f"{_THIS_DIR}/assets.db")
+
+cur = con.cursor()
+
+res = cur.execute("SELECT width, height, data FROM images WHERE id='00.png'")
+
+width, height, data = res.fetchone()
+
+mock_inky.setup()
+
+# 600x448
+draw_rectangle(0, 0, 600, 448, 0)
+blit(600-width, 0, width, height, data)
+draw_lineX(0, 600, height+1, 1)
+draw_liney(600-width-1, 0, 448, 1)
+
+mock_inky.show()
+
+time.sleep(5)
 """
 im = iio.imread('assets/00.png')
 image = numpy.array(im, dtype=numpy.uint8)
@@ -52,11 +90,10 @@ def color_to_index(color):
             return i
 
 
-mock_inky.setup()
 for x in range(im.shape[0]):
     for y in range(im.shape[1]):
         mock_inky.set_pixel(x, y, color_to_index(image[y][x]))
 mock_inky.show()
 
-time.sleep(5)
+
 """

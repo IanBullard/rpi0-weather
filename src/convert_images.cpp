@@ -81,7 +81,7 @@ void save_image(const char* filename, FIBITMAP* bitmap, AssetDb& db)
         for(int x = 0; x < width; ++x)
         {
             FreeImage_GetPixelColor(normalized, x, y, &color);
-            data[x + y * width] = closest_color(rgba8888(color.rgbRed, color.rgbGreen, color.rgbBlue, color.rgbReserved));
+            data[x + (height-y-1) * width] = closest_color(rgba8888(color.rgbRed, color.rgbGreen, color.rgbBlue, color.rgbReserved));
         }
     }
     db.add_image(filename, width, height, (const char*)data, width * height);
