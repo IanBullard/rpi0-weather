@@ -37,3 +37,6 @@ __pycache__
 build
 .xmake
 .vscode
+
+# Private info for location of forcast
+local_cfg.json

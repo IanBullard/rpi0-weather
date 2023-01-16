@@ -25,6 +25,49 @@ import numpy
 
 import mock_inky
 
+import requests
+from dateutil import parser
+
+class Forcast:
+    WEATHER_URL = "https://api.weather.gov/"
+    TIME_URL = "http://worldtimeapi.org/api/timezone/"
+
+    def __init__(self, config):
+        self._location_name = config.get("locationName", "Unknown")
+        self._latitude = config.get("latitude", 44.1076)
+        self._longitude = config.get("longitude", -73.9209)
+        self._timezone = config.get("timezone", "America/New_York")
+        self._gridpoint = None
+        self._current_time = (0, 0) # year, month, day, hour, minute
+        self._get_time()
+
+    def _get_time(self):
+        request_string = f"{Forcast.TIME_URL}{self._timezone}"
+        response = requests.get(request_string)
+        json = response.json()
+        date = parser.parse(json["datetime"])
+        am_pm = "AM"
+        hour = date.hour
+        if hour > 12:
+            am_pm = "PM"
+            hour = hour - 12
+        self._current_time = (date.year, date.month, date.day, hour, am_pm, date.minute)
+
+    @property
+    def date(self):
+        pass
+
+    @property
+    def time(self):
+        pass
+
+    def _get_grid_point(self):
+        request_string = f"{Forcast.WEATHER_URL}{self._latitude},{self._longitude}"
+        self._gridpoint = requests.get(request_string)
+
+    def update(self):
+        pass
+
 
 class Image:
     def __init__(self, id, width, height, data):
@@ -177,7 +220,6 @@ class Renderer:
         cur_pos = (x, y)
         for char in string:
             glyph = font.glyph(char)
-            print(glyph)
             for y in range(glyph.size[1]):
                 for x in range(glyph.size[0]):
                     if glyph.data[x + y * glyph.size[0]]:
@@ -190,6 +232,7 @@ class Renderer:
 class WeatherApp:
     def __init__(self, inky):
         self._render = Renderer(inky)
+        self._forcast = Forcast({})
         self._assets = AssetDb()
         self._test_image = self._assets.load_image("00.png")
         self._test_font = self._assets.load_font("test")

@@ -4,4 +4,5 @@
 sudo apt install git
 git clone https://github.com/IanBullard/rpi0-weather.git
 python -m ensurepip --upgrade
-pip install imageio
+pip install requests
+pip install python-dateutil
