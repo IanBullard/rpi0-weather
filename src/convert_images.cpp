@@ -23,6 +23,7 @@
 #include "utils/palette.h"
 #include "utils/zipfile.h"
 #include <fmt/core.h>
+#include <rapidjson/document.h>
 
 #include "convert_images.h"
 #include "log.h"
@@ -89,10 +90,10 @@ void save_image(const char* filename, FIBITMAP* bitmap, AssetDb& db)
     FreeImage_Unload(normalized);
 }
 
-void convert_weather_icon(const std::string name, FIMEMORY* contents, AssetDb& db)
+void convert_weather_icon(const std::string name, FIMEMORY* contents, AssetDb& db, int width, int height)
 {
     auto img = load_image(contents);
-    img = resize(img, 112, 112);
+    img = resize(img, width, height);
     quantize_and_save(img, db, name);
     FreeImage_Unload(img);
 }
@@ -103,7 +104,7 @@ FIMEMORY* convert_to_fimem(char* data, size_t size)
     return results;
 }
 
-bool convert_image(ZipFile* zip, const std::string& path, const std::string& file, AssetDb& db)
+bool convert_image(ZipFile* zip, const std::string& path, const std::string& file, AssetDb& db, int width, int height)
 {
     char* contents = zip->contents(path);
     size_t content_size = zip->size(path);
@@ -115,27 +116,42 @@ bool convert_image(ZipFile* zip, const std::string& path, const std::string& fil
     }
 
     FIMEMORY* icon = convert_to_fimem(contents, content_size);
-    convert_weather_icon(file, icon, db);
+    convert_weather_icon(file, icon, db, width, height);
     FreeImage_CloseMemory(icon);
     delete[] contents;
 
     return true;
 }
 
-bool convert_images(AssetDb& db)
+bool convert_images(AssetDb& db, const std::string& settings)
 {
     db.reset_images();
     init_palette();
-    FreeImage_Initialise();
-    ZipFile icons("source_assets/plain_weather_icons_by_merlinthered_d2lkj4g.zip");
-
-    for(int i = 0; i < 48; ++i)
+    rapidjson::Document config;
+    if (config.Parse(settings.c_str()).HasParseError())
     {
-        std::string filename = fmt::format("{:02d}.png", i);
-        std::string path = fmt::format("plain_weather/flat_colorful/png/{}", filename);
-        convert_image(&icons, path, filename, db);
+        log(fmt::format("Failed to parse settings json"));
+        return false;
     }
-    convert_image(&icons, "plain_weather/flat_colorful/png/na.png", "na.png", db);
+
+    const rapidjson::Value& icon_settings = config["iconSettings"];
+
+    int width = icon_settings["width"].GetInt();
+    int height = icon_settings["height"].GetInt();
+    std::string source_zip = icon_settings["sourceZip"].GetString();
+    std::string zip_folder = icon_settings["sourceFolder"].GetString();
+
+    FreeImage_Initialise();
+    ZipFile icons(source_zip);
+
+    const rapidjson::Value& icon_names = icon_settings["iconNames"];
+    for(auto iter = icon_names.MemberBegin(); iter != icon_names.MemberEnd(); ++iter)
+    {
+        std::string name = iter->name.GetString();
+        std::string filename = iter->value.GetString();
+        std::string path = fmt::format("{}{}", zip_folder, filename);
+        convert_image(&icons, path, name, db, width, height);
+    }
 
     FreeImage_DeInitialise();
 

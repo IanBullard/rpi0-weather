@@ -22,6 +22,8 @@
 
 #include "log.h"
 
+#include <vector>
+
 AssetDb::AssetDb()
     : m_db(nullptr)
 {
@@ -51,6 +53,7 @@ void AssetDb::add_image(const std::string id, int width, int height, const char 
     if (statement == nullptr)
     {
         log("Failed to prepare add image SQL");
+        sqlite3_finalize(statement);
         return;
     }
     sqlite3_bind_text(statement, 1, id.c_str(), -1, nullptr);
@@ -63,18 +66,74 @@ void AssetDb::add_image(const std::string id, int width, int height, const char 
 
 void AssetDb::reset_fonts()
 {
-    if(this->simple_sql("DROP TABLE IF EXISTS fonts"))
-        this->simple_sql("CREATE TABLE fonts(id TEXT PRIMARY KEY, width INT, height INT, top INT, left INT, advance_x INT, advance_y INT, data BLOB)");
+    std::string loaded_fonts("SELECT id, height, table_name FROM fonts");
+    sqlite3_stmt* statement;
+    sqlite3_prepare_v2(m_db, loaded_fonts.c_str(), -1, &statement, nullptr);
+    std::vector<std::string> tables;
+    int result = SQLITE_ROW;
+
+    if (statement == nullptr)
+    {
+        log("Failed to prepare font table query");
+    }
+    else
+    {
+        int wtf = 0;
+        while(result == SQLITE_ROW) {
+            result = sqlite3_step(statement);
+            if (result == SQLITE_ROW)
+                tables.push_back(std::string((const char*)sqlite3_column_text(statement, 2)));
+            wtf++;
+        }
+    }
+    sqlite3_finalize(statement);
+
+    for (std::string table: tables) {
+        this->simple_sql(fmt::format("DROP TABLE IF EXISTS {}", table).c_str());
+    }
+
+    this->simple_sql("DROP TABLE IF EXISTS fonts");
+    this->simple_sql("CREATE TABLE fonts(id TEXT PRIMARY KEY, height INT, table_name TEXT)");
 }
 
-void AssetDb::add_font(const std::string id, int width, int height, int top, int left, int advance_x, int advance_y, const char *data, size_t size)
+void AssetDb::add_font(const std::string id, int height)
 {
-    std::string insert("INSERT INTO fonts VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+    std::string table_name = this->font_table_name(id, height);
+    std::string insert("INSERT INTO fonts VALUES (?, ?, ?)");
     sqlite3_stmt* statement;
     sqlite3_prepare_v2(m_db, insert.c_str(), -1, &statement, nullptr);
     if (statement == nullptr)
     {
         log("Failed to prepare add font SQL");
+        sqlite3_finalize(statement);
+        return;
+    }
+    sqlite3_bind_text(statement, 1, id.c_str(), -1, nullptr);
+    sqlite3_bind_int(statement, 2, height);
+    sqlite3_bind_text(statement, 3, table_name.c_str(), -1, nullptr);
+    sqlite3_step(statement);
+    sqlite3_finalize(statement);
+
+    std::string drop_font(fmt::format("DROP TABLE IF EXISTS {}", table_name));
+    this->simple_sql(drop_font.c_str());
+    std::string create_font(fmt::format("CREATE TABLE {}(id TEXT PRIMARY KEY, width INT, height INT, top INT, left INT, advance_x INT, advance_y INT, data BLOB)", table_name));
+    this->simple_sql(create_font.c_str());
+}
+
+const std::string AssetDb::font_table_name(const std::string id, int height)
+{
+    return fmt::format("{}_{}", id, height);
+}
+
+void AssetDb::add_glyph(const std::string font_table, const std::string id, int width, int height, int top, int left, int advance_x, int advance_y, const char *data, size_t size)
+{
+    std::string insert(fmt::format("INSERT INTO {} VALUES (?, ?, ?, ?, ?, ?, ?, ?)", font_table));
+    sqlite3_stmt* statement;
+    sqlite3_prepare_v2(m_db, insert.c_str(), -1, &statement, nullptr);
+    if (statement == nullptr)
+    {
+        log("Failed to prepare add font SQL");
+        sqlite3_finalize(statement);
         return;
     }
     sqlite3_bind_text(statement, 1, id.c_str(), -1, nullptr);
@@ -94,7 +153,7 @@ bool AssetDb::simple_sql(const char* sql)
     int result = sqlite3_exec(m_db, sql, nullptr, nullptr, nullptr);
     if(result)
     {
-        log(fmt::format("Failed SQL statement: {}", sql));
+        log(fmt::format("Failed SQL statement: {} {}", sql, result));
     }
     return result == 0;
 }

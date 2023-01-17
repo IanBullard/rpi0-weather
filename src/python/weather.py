@@ -21,7 +21,7 @@
 import time
 import sqlite3
 import os
-import numpy
+from datetime import datetime
 
 import mock_inky
 
@@ -30,40 +30,102 @@ from dateutil import parser
 
 class Forcast:
     WEATHER_URL = "https://api.weather.gov/"
-    TIME_URL = "http://worldtimeapi.org/api/timezone/"
 
     def __init__(self, config):
         self._location_name = config.get("locationName", "Unknown")
         self._latitude = config.get("latitude", 44.1076)
         self._longitude = config.get("longitude", -73.9209)
         self._timezone = config.get("timezone", "America/New_York")
-        self._gridpoint = None
-        self._current_time = (0, 0) # year, month, day, hour, minute
-        self._get_time()
+        self._forecast = None
+        self._temperature = None
+        self._dewpoint = None
+        self._temperature_max = None
+        self._temperature_min = None
+        self._humidity = None
+        self._apparent_temperature = None
+        self._sky_cover = None
+        self._wind_dir = None
+        self._wind_speed = None
+        self._coverage = None
+        self._weather = None
+        self._intensity = None
+        # weather
+        self._percip = None
+        self._wind_speed_20 = None
+        self._wind_dir_20 = None
+        self._get_forcast_url()
+        self._get_forcast()
 
-    def _get_time(self):
-        request_string = f"{Forcast.TIME_URL}{self._timezone}"
-        response = requests.get(request_string)
+        # https://api.weather.gov/gridpoints/BTV/67,35
+        #   everything
+
+    def _convert_temp(self, src_unit, value):
+        if src_unit == "wmoUnit:degC":
+            return (value * 9 / 5) + 32
+        return value
+
+    def _get_forcast_url(self):
+        try:
+            request_string = f"{Forcast.WEATHER_URL}points/{self._latitude},{self._longitude}"
+            response = requests.get(request_string)
+        except:
+            print("failed to query location")
+            return
         json = response.json()
-        date = parser.parse(json["datetime"])
-        am_pm = "AM"
-        hour = date.hour
-        if hour > 12:
-            am_pm = "PM"
-            hour = hour - 12
-        self._current_time = (date.year, date.month, date.day, hour, am_pm, date.minute)
+        self._forecast = json["properties"]["forecastGridData"]
+
+    def _cur_value_from_list(self, list):
+        current_time = datetime.now(None)
+        result = list[0]["value"]
+        for value in list:
+            valid_time = parser.parse(value["validTime"].split("+")[0])
+            if valid_time < current_time:
+                result = value["value"]
+        return result
+
+    def _cur_value(self, data, measurement):
+        return self._cur_value_from_list(data[measurement]["values"])
+
+    def _cur_f_value(self, data, measurement):
+        unit = data[measurement]["uom"]
+        return self._convert_temp(unit, self._cur_value(data, measurement))
+
+    def _get_forcast(self):
+        try:
+            response = requests.get(self._forecast)
+        except:
+            print("failed to query forcast")
+            return
+        data = response.json()["properties"]
+        self._temperature = self._cur_f_value(data, "temperature")
+        self._dewpoint = self._cur_f_value(data, "dewpoint")
+        self._temperature_max = self._cur_f_value(data, "maxTemperature")
+        self._temperature_min = self._cur_f_value(data, "minTemperature")
+        self._humidity = self._cur_value(data, "relativeHumidity")
+        self._apparent_temperature = self._cur_f_value(data, "apparentTemperature")
+        self._sky_cover = self._cur_value(data, "skyCover")
+        self._wind_dir = self._cur_value(data, "windDirection")
+        self._wind_speed = self._cur_value(data, "windSpeed")
+
+        weather = self._cur_value(data, "weather")[0]
+        self._coverage = weather["coverage"]
+        self._weather = weather["weather"]
+        self._intensity = weather["intensity"]
+        # weather
+        #   coverage(null): areas, brief, chance, definite, few, frequent, intermittent, isolated, likely, numerous, occasional, patchy, periods, scattered, slight_chance, widespread
+        #   weather(null): blowing_dust, blowing_sand, blowing_snow, drizzle, fog, freezing_fog, freezing_drizzle, freezing_rain, freezing_spray, frost, hail, haze, ice_crystals, ice_fog, rain, rain_showers, sleet, smoke, snow, snow_showers, thunderstorms, volcanic_ash, water_spouts
+        #   intensity(null): very_light, light, moderate, heavy
+        self._percip = self._cur_value(data, "probabilityOfPrecipitation")
+        self._wind_speed_20 = self._cur_value(data, "twentyFootWindSpeed")
+        self._wind_dir_20 = self._cur_value(data, "twentyFootWindDirection")
 
     @property
     def date(self):
-        pass
+        return (self._current_time[1], self._current_time[2], self._current_time[0])
 
     @property
     def time(self):
-        pass
-
-    def _get_grid_point(self):
-        request_string = f"{Forcast.WEATHER_URL}{self._latitude},{self._longitude}"
-        self._gridpoint = requests.get(request_string)
+        return (self._current_time[3], self._current_time[5], self._current_time[4])
 
     def update(self):
         pass
@@ -74,7 +136,7 @@ class Image:
         self._id = id;
         self._width = width
         self._height = height
-        self._data = numpy.fromstring(data, dtype=numpy.uint8)
+        self._data = data
 
     @property
     def width(self):
@@ -234,7 +296,7 @@ class WeatherApp:
         self._render = Renderer(inky)
         self._forcast = Forcast({})
         self._assets = AssetDb()
-        self._test_image = self._assets.load_image("00.png")
+        self._test_image = self._assets.load_image("unknown")
         self._test_font = self._assets.load_font("test")
 
     def update(self):

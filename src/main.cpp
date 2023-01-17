@@ -24,21 +24,32 @@
 #include "convert_font.h"
 #include "convert_images.h"
 #include <filesystem>
+#include <fstream>
+#include <streambuf>
 
 int main(int argc, char** argv)
 {
     std::filesystem::path cwd = std::filesystem::current_path();
     std::string base_path = cwd.string();
     AssetDb assets;
+    std::ifstream settings_stream(fmt::format("{}/source_assets/settings.json", base_path));
+    std::string settings((std::istreambuf_iterator<char>(settings_stream)),
+                         std::istreambuf_iterator<char>());
 
     if(argc > 1)
     {
         std::string action(argv[1]);
         
-        if(action == "icons")
-            convert_images(assets);
-        if(action == "fonts")
-            convert_font(assets);
+        if(action == "all")
+        {
+            convert_images(assets, settings);
+            convert_font(assets, settings);
+            emulate(argc, argv);
+        }
+        else if(action == "icons")
+            convert_images(assets, settings);
+        else if(action == "fonts")
+            convert_font(assets, settings);
         else
             emulate(argc, argv);
     }

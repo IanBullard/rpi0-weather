@@ -21,4 +21,4 @@
 
 #include "asset_db.h"
 
-bool convert_font(AssetDb& db);
+bool convert_font(AssetDb& db, const std::string& settings);

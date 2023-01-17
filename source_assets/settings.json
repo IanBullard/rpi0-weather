@@ -1,0 +1,65 @@
+{
+    "iconSettings":
+    {
+        "width": 196,
+        "height": 196,
+        "sourceZip": "source_assets/plain_weather_icons_by_merlinthered_d2lkj4g.zip",
+        "sourceFolder": "plain_weather/flat_colorful/png/",
+        "iconNames":
+        {
+            "snow_light": "13.png",
+            "snow_medium": "14.png",
+            "snow_heavy": "16.png",
+            "snow_blowing": "15.png",
+            "snow_rain": "42.png",
+            "rain_snow": "05.png",
+            "mixed_precipitation": "07.png",
+            "rain_hail": "06.png",
+            "hail": "18.png",
+            "clouds_full": "26.png",
+            "windy": "23.png",
+            "fog": "20.png",
+            "rain_light": "09.png",
+            "rain_heavy": "12.png",
+            "rain_blowing": "01.png",
+            "thuderstorm_full": "00.png",
+            "rain_freezing": "08.png",
+            "rain_freezing_heavy": "10.png",
+            "clear_night": "31.png",
+            "fog_night": "21.png",
+            "cloud_light_night": "33.png",
+            "cloud_medium_night": "29.png",
+            "cloud_heavy_night": "27.png",
+            "rain_parital_night": "45.png",
+            "snow_partial_night": "46.png",
+            "thunderstorm_partial_night": "47.png",
+            "clear_day_hot": "36.png",
+            "clear_day": "32.png",
+            "fog_day": "19.png",
+            "cloud_light_day": "34.png",
+            "cloud_medium_day": "30.png",
+            "cloud_heavy_day": "28.png",
+            "rain_partial_day": "39.png",
+            "snow_partial_day": "41.png",
+            "thunderstorm_partial_day": "37.png",
+            "unknown": "25.png"
+        }
+    },
+    "fontSettings": {
+        "large": {
+            "sourceZip": "source_assets/Inter.zip",
+            "sourceFile": "static/Inter-Bold.ttf",
+            "height": 78
+        },
+        "medium": {
+            "sourceZip": "source_assets/Inter.zip",
+            "sourceFile": "static/Inter-Bold.ttf",
+            "height": 58
+        },
+        "small": {
+            "sourceZip": "source_assets/Inter.zip",
+            "sourceFile": "static/Inter-Bold.ttf",
+            "height": 39
+        }
+    }
+}

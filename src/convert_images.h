@@ -21,4 +21,4 @@
 
 #include "asset_db.h"
 
-bool convert_images(AssetDb& db);
+bool convert_images(AssetDb& db, const std::string& settings);
