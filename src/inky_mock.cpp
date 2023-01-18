@@ -55,7 +55,7 @@ void inky_setup()
         exit(-1);
     }
 
-    s_window = SDL_CreateWindow("RPi0 Weather Display Emulation", 0, 0, s_width*2, s_height*2, 0);
+    s_window = SDL_CreateWindow("RPi0 Weather Display Emulation", 25, 25, s_width*2, s_height*2, 0);
     if(!s_window) {
         log("Failed to create window");
         exit(-1);

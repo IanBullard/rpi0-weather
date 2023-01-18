@@ -93,13 +93,13 @@ void AssetDb::reset_fonts()
     }
 
     this->simple_sql("DROP TABLE IF EXISTS fonts");
-    this->simple_sql("CREATE TABLE fonts(id TEXT PRIMARY KEY, height INT, table_name TEXT)");
+    this->simple_sql("CREATE TABLE fonts(id TEXT PRIMARY KEY, size INT, height INT, table_name TEXT)");
 }
 
-void AssetDb::add_font(const std::string id, int height)
+void AssetDb::add_font(const std::string id, int size, int height)
 {
-    std::string table_name = this->font_table_name(id, height);
-    std::string insert("INSERT INTO fonts VALUES (?, ?, ?)");
+    std::string table_name = this->font_table_name(id, size);
+    std::string insert("INSERT INTO fonts VALUES (?, ?, ?, ?)");
     sqlite3_stmt* statement;
     sqlite3_prepare_v2(m_db, insert.c_str(), -1, &statement, nullptr);
     if (statement == nullptr)
@@ -109,8 +109,9 @@ void AssetDb::add_font(const std::string id, int height)
         return;
     }
     sqlite3_bind_text(statement, 1, id.c_str(), -1, nullptr);
-    sqlite3_bind_int(statement, 2, height);
-    sqlite3_bind_text(statement, 3, table_name.c_str(), -1, nullptr);
+    sqlite3_bind_int(statement, 2, size);
+    sqlite3_bind_int(statement, 3, height);
+    sqlite3_bind_text(statement, 4, table_name.c_str(), -1, nullptr);
     sqlite3_step(statement);
     sqlite3_finalize(statement);
 
@@ -153,7 +154,7 @@ bool AssetDb::simple_sql(const char* sql)
     int result = sqlite3_exec(m_db, sql, nullptr, nullptr, nullptr);
     if(result)
     {
-        log(fmt::format("Failed SQL statement: {} {}", sql, result));
+        log(fmt::format("Failed SQL statement: {} result = {}", sql, result));
     }
     return result == 0;
 }

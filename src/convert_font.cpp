@@ -68,9 +68,6 @@ bool convert_font(AssetDb& db, const std::string& settings)
         std::string source_file = data["sourceFile"].GetString();
         int height = data["height"].GetInt();
 
-        db.add_font(name, height);
-        std::string font_table = db.font_table_name(name, height);
-
         ZipFile fonts(source_zip);
 
         open_args.memory_base = (const FT_Byte *)fonts.contents(source_file);
@@ -90,12 +87,15 @@ bool convert_font(AssetDb& db, const std::string& settings)
             return false;
         }
 
-        error = FT_Set_Pixel_Sizes(face, 0, 16);
+        error = FT_Set_Pixel_Sizes(face, 0, height);
         if (error)
         {
             log("Failed to set pixel size");
             return false;
         }
+
+        db.add_font(name, height, face->height >> 6);
+        std::string font_table = db.font_table_name(name, height);
 
         FT_UInt glyph_index = 0;
         for(char const &c: font_characters){

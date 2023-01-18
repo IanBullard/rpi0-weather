@@ -117,54 +117,68 @@ class Forcast:
         return int(mph * 1.609344)
 
     @property
+    def temperature_text(self) -> str:
+        if self._imperial:
+            return "F"
+        else:
+            return "C"
+
+    @property
+    def speed_text(self) -> str:
+        if self._imperial:
+            return "mph"
+        else:
+            return "kph"
+
+    @property
     def location(self) -> str:
         return self._location_name
 
     @property
     def temperature(self) -> int:
         if self._imperial:
-            return self._celsius_to_fahrenheit(self._temperature())
-        return self._temperature()
+            return int(self._celsius_to_fahrenheit(self._temperature))
+        return int(self._temperature)
 
     @property
     def temperature_max(self) -> int:
         if self._imperial:
-            return self._celsius_to_fahrenheit(self._temperature_max())
-        return self._temperature_max()
+            return int(self._celsius_to_fahrenheit(self._temperature_max))
+        return int(self._temperature_max)
 
     @property
     def temperature_min(self) -> int:
         if self._imperial:
-            return self._celsius_to_fahrenheit(self._temperature_min())
-        return self._temperature_min()
+            return int(self._celsius_to_fahrenheit(self._temperature_min))
+        return int(self._temperature_min)
 
     @property
     def precipitation_chance(self) -> int:
-        return self._precipitation_chance()
+        return int(self._precipitation_chance)
 
     @property
     def wind_speed(self) -> int:
         if self._imperial:
-            return self._kph_to_mph(self._wind_speed())
-        return self._wind_speed()
+            return int(self._kph_to_mph(self._wind_speed))
+        return int(self._wind_speed)
 
     @property
     def wind_heading(self) -> int:
-        return self._wind_heading()
+        return int(self._wind_heading)
 
     @property
     def humidity(self) -> int:
-        return self._humidity()
+        return int(self._humidity)
 
     @property
     def dewpoint(self) -> int:
         if self._imperial:
-            return self._celsius_to_fahrenheit(self._dewpoint())
-        return self._dewpoint()
+            return int(self._celsius_to_fahrenheit(self._dewpoint))
+        return int(self._dewpoint)
 
     @property
     def weather_icon(self) -> str:
-        return self._weather_icon()
+        return self._weather_icon
 
     def update(self) -> bool:
         """

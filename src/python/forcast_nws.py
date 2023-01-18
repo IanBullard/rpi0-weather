@@ -101,14 +101,17 @@ class ForcastNWS(Forcast):
             intensity = self._cur_value(data, "weather")[0]["intensity"]
             sky_cover_percent = self._cur_value(data, "skyCover")
             heat_index = self._cur_value(data, "heatIndex")
-            is_hot = heat_index > 100
+            try:
+                is_hot = int(heat_index) > 100
+            except:
+                is_hot = False
             is_foggy = weather == "fog" or weather == "freezing_fog" or weather == "ice_fog"
             is_blowing = weather == "blowing_dust" or weather == "blowing_sand" or weather == "blowing_snow"
             is_thunder = weather == "thunderstorms"
             is_unknown = weather == "volcanic_ash" or weather == "water_spouts" or weather == "smoke"
             is_rain = weather == "drizzle" or weather == "rain" or weather == "rain_showers"
             is_snow = weather == "snow" or weather == "snow_showers"
-            is_rain_freezing = weather == "freezing_drizzle" or weather == "freezing_rain" or "freezing_spray"
+            is_rain_freezing = weather == "freezing_drizzle" or weather == "freezing_rain" or weather == "freezing_spray"
             is_hail = weather == "hail"
             is_sleet = weather == "sleet"
 
@@ -188,6 +191,7 @@ class ForcastNWS(Forcast):
                         self._weather_icon = "clear_night"
         except:
             self._error_message = f"Failed to retrieve NWS forcast"
+            print("Failed to retrieve NWS forcast")
             return False
         return True
 
