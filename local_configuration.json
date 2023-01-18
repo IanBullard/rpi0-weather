@@ -1,0 +1,10 @@
+{
+    "locationName": "Round Rock",
+    "latitude": 30.514200,
+    "longitude": -97.661150,
+    "update_delay_sec": 60,
+    "forcast_source": "NWS",
+    "forcast_nws": {
+        "use_20ft_wind": true
+    }
+}

@@ -39,4 +39,4 @@ build
 .vscode
 
 # Private info for location of forcast
-local_cfg.json
+local_cconfiguration.json

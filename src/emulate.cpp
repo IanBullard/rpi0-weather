@@ -75,23 +75,6 @@ PyInit_mock_inky(void)
 }
 }
 
-void emulate2(int argc, char** argv)
-{
-    wchar_t *program = Py_DecodeLocale(argv[0], NULL);
-    if (program == NULL) {
-        fprintf(stderr, "Fatal error: cannot decode argv[0]\n");
-        exit(1);
-    }
-    Py_SetProgramName(program);  /* optional but recommended */
-    Py_Initialize();
-    PyRun_SimpleString("from time import time,ctime\n"
-                       "print('Today is', ctime(time()))\n");
-    if (Py_FinalizeEx() < 0) {
-        exit(120);
-    }
-    PyMem_RawFree(program);
-}
-
 void emulate(int argc, char** argv)
 {
     PyStatus status;
@@ -126,8 +109,8 @@ void emulate(int argc, char** argv)
 
 
     int run = PyRun_SimpleString("import sys, os\n"
-                       "sys.path.append(os.path.abspath('./src/python'))\n"
-                       "import weather\n");
+                       "sys.path.append(os.path.abspath('.'))\n"
+                       "import app_emulate\n");
     if (run < 0)
     {
         log("Failed to run app");
