@@ -25,10 +25,14 @@
 #include FT_FREETYPE_H
 
 #include <rapidjson/document.h>
-#include <utf8.h>
+#include <utf8cpp/utf8.h>
 
 #include "log.h"
 #include "utils/zipfile.h"
+
+#define xstr(s) str(s)
+#define str(s) #s
+#pragma message(xstr(__cplusplus))
 
 const std::string font_characters("`1234567890-=~!@#$%^&*()_+qwertyuiop[]\\QWERTYUIOP{}|asdfghjkl;'ASDFGHJKL:\"zxcvbnm,./ZXCVBNM<>? °");
 
@@ -99,21 +103,26 @@ bool convert_font(AssetDb& db, const std::string& settings)
         std::string font_table = db.font_table_name(name, height);
 
         FT_UInt glyph_index = 0;
-        for(char const &c: font_characters){
-            glyph_index = FT_Get_Char_Index(face, (FT_ULong)utf8::utf8to32(c));
+        std::u32string utf32_characters = utf8::utf8to32(font_characters);
+
+        for(auto c: utf32_characters){
+            glyph_index = FT_Get_Char_Index(face, (FT_ULong)c);
+            std::u32string char32_string;
+            char32_string.push_back(c);
+            std::string char8_string = utf8::utf32to8(char32_string);
             if(glyph_index)
             {
                 error = FT_Load_Glyph(face, glyph_index, FT_RENDER_MODE_NORMAL);
                 if (error)
                 {
-                    log(fmt::format("Could not load glyph {}", c));
+                    log(fmt::format("Could not load glyph {}", char8_string));
                     return false;
                 }
                 error = FT_Render_Glyph(face->glyph,
                                         FT_RENDER_MODE_MONO);
                 if (error)
                 {
-                    log(fmt::format("Could not render glyph {}", c));
+                    log(fmt::format("Could not render glyph {}", char8_string));
                     return false;
                 }
 
@@ -123,7 +132,7 @@ bool convert_font(AssetDb& db, const std::string& settings)
                 error = FT_Bitmap_Convert(library, &face->glyph->bitmap, &mono, 1);
                 if (error)
                 {
-                    log(fmt::format("Could not convert glyph {}", c));
+                    log(fmt::format("Could not convert glyph {}", char8_string));
                     return false;
                 }
 
@@ -140,7 +149,7 @@ bool convert_font(AssetDb& db, const std::string& settings)
                         data[x + y * mono.width] = mono.buffer[x + y * mono.pitch];
                     }
                 }
-                db.add_glyph(font_table, fmt::format("{}", c), mono.width, mono.rows, left, top, advance_x, advance_y, data, mono.width * mono.rows);
+                db.add_glyph(font_table, char8_string, mono.width, mono.rows, left, top, advance_x, advance_y, data, mono.width * mono.rows);
                 delete[] data;
             }
         }
