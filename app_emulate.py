@@ -13,5 +13,7 @@ local_config = json.load(local_file)
 config.update(local_config)
 config["update_delay_sec"] = 0
 
+self._inky.setup()
+
 app = weather_app.WeatherApp(mock_inky, config)
 app.run()
