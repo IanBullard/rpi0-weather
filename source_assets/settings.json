@@ -54,12 +54,17 @@
         "medium": {
             "sourceZip": "source_assets/Inter.zip",
             "sourceFile": "static/Inter-Bold.ttf",
-            "height": 58
+            "height": 45
         },
         "small": {
             "sourceZip": "source_assets/Inter.zip",
             "sourceFile": "static/Inter-Bold.ttf",
-            "height": 39
+            "height": 36
+        },
+        "titles": {
+            "sourceZip": "source_assets/Inter.zip",
+            "sourceFile": "static/Inter-Bold.ttf",
+            "height": 25
         }
     }
 }

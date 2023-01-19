@@ -145,7 +145,11 @@ void AssetDb::add_glyph(const std::string font_table, const std::string id, int 
     sqlite3_bind_int(statement, 6, advance_x);
     sqlite3_bind_int(statement, 7, advance_y);
     sqlite3_bind_blob(statement, 8, data, size, nullptr);
-    sqlite3_step(statement);
+    if(sqlite3_step(statement) != SQLITE_DONE)
+    {
+        log(fmt::format("Failed to add glyph {} to table", id));
+        return;
+    }
     sqlite3_finalize(statement);
 }
 

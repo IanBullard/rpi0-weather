@@ -15,6 +15,7 @@ try:
     local_config = json.load(local_file)
     config.update(local_config)
 except:
+    print("Failed to parse local config")
     exit(-1)
 
 app = WeatherApp(inky, config)

@@ -25,11 +25,12 @@
 #include FT_FREETYPE_H
 
 #include <rapidjson/document.h>
+#include <utf8.h>
 
 #include "log.h"
 #include "utils/zipfile.h"
 
-const std::string font_characters("`1234567890-=~!@#$%^&*()_+qwertyuiop[]\\QWERTYUIOP{}|asdfghjkl;'ASDFGHJKL:\"zxcvbnm,./ZXCVBNM<>? ");
+const std::string font_characters("`1234567890-=~!@#$%^&*()_+qwertyuiop[]\\QWERTYUIOP{}|asdfghjkl;'ASDFGHJKL:\"zxcvbnm,./ZXCVBNM<>? °");
 
 bool convert_font(AssetDb& db, const std::string& settings)
 {
@@ -99,7 +100,7 @@ bool convert_font(AssetDb& db, const std::string& settings)
 
         FT_UInt glyph_index = 0;
         for(char const &c: font_characters){
-            glyph_index = FT_Get_Char_Index(face, (FT_ULong)c);
+            glyph_index = FT_Get_Char_Index(face, (FT_ULong)utf8::utf8to32(c));
             if(glyph_index)
             {
                 error = FT_Load_Glyph(face, glyph_index, FT_RENDER_MODE_NORMAL);

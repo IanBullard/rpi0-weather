@@ -1,4 +1,4 @@
-requires = {"freeimage", "freetype", "glm", "libsdl", "libzip", "fmt", "python", "sqlite3", "rapidjson"}
+requires = {"freeimage", "freetype", "glm", "libsdl", "libzip", "fmt", "python", "sqlite3", "rapidjson", "utfcpp"}
 add_requires(requires)
 set_languages("c++17")
 

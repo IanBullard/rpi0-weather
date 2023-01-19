@@ -254,6 +254,7 @@ class WeatherApp:
         self._small_font = self._assets.load_font("small")
         self._medium_font = self._assets.load_font("medium")
         self._large_font = self._assets.load_font("large")
+        self._title_font = self._assets.load_font("titles")
 
     def draw_borders(self):
         # aliases to make draw calls easier to read
@@ -285,44 +286,42 @@ class WeatherApp:
         pos = WeatherApp.PANEL_COORDS[panel]
         self._render.blit(pos[0], pos[1], self._weather_icon)
 
-    def draw_current_temp(self, panel):
+    def draw_single_value_panel(self, panel, title, text):
         pos = WeatherApp.PANEL_COORDS[panel]
-        cur_temp_area = [pos[0], pos[1], WeatherApp.PANEL_SIZE[0], WeatherApp.PANEL_SIZE[1]]
-        cur_temp_text = f"{self._forcast.temperature}{self._forcast.temperature_text}"
-        self._render.print_center(cur_temp_area, self._large_font, WeatherApp.TEXT_COLOR, cur_temp_text)
+        title_area = [pos[0], pos[1], WeatherApp.PANEL_SIZE[0], self._title_font.height]
+        self._render.print_center(title_area, self._title_font, WeatherApp.TEXT_COLOR, title)
+        value_area = [pos[0], pos[1] + self._title_font.height, WeatherApp.PANEL_SIZE[0], WeatherApp.PANEL_SIZE[1] -  + self._title_font.height]
+        self._render.print_center(value_area, self._large_font, WeatherApp.TEXT_COLOR, text)
+
+    def draw_double_value_panel(self, panel, title, text1, text2):
+        pos = WeatherApp.PANEL_COORDS[panel]
+        title_area = [pos[0], pos[1], WeatherApp.PANEL_SIZE[0], self._title_font.height]
+        self._render.print_center(title_area, self._title_font, WeatherApp.TEXT_COLOR, title)
+        value_area1 = [pos[0], pos[1] + self._title_font.height, WeatherApp.PANEL_SIZE[0], (WeatherApp.PANEL_SIZE[1] - self._title_font.height)/2]
+        self._render.print_center(value_area1, self._medium_font, WeatherApp.TEXT_COLOR, text1)
+        value_area2 = [pos[0], pos[1] + self._title_font.height + (WeatherApp.PANEL_SIZE[1] - self._title_font.height)/2, WeatherApp.PANEL_SIZE[0], (WeatherApp.PANEL_SIZE[1] - self._title_font.height)/2]
+        self._render.print_center(value_area2, self._medium_font, WeatherApp.TEXT_COLOR, text2)
+
+    def draw_current_temp(self, panel):
+        self.draw_single_value_panel(panel, "Currently", f"{self._forcast.temperature}{self._forcast.temperature_text}")
 
     def draw_min_max_temp(self, panel):
-        pos = WeatherApp.PANEL_COORDS[panel]
-        cur_temp_area = [pos[0], pos[1], WeatherApp.PANEL_SIZE[0], WeatherApp.PANEL_SIZE[1]/2]
-        cur_temp_text = f"Hi {self._forcast.temperature_max}{self._forcast.temperature_text}"
-        self._render.print_center(cur_temp_area, self._medium_font, WeatherApp.TEXT_COLOR, cur_temp_text)
-        cur_temp_area = [pos[0], pos[1] + WeatherApp.PANEL_SIZE[1]/2, WeatherApp.PANEL_SIZE[0], WeatherApp.PANEL_SIZE[1]/2]
-        cur_temp_text = f"Lo {self._forcast.temperature_min}{self._forcast.temperature_text}"
-        self._render.print_center(cur_temp_area, self._medium_font, WeatherApp.TEXT_COLOR, cur_temp_text)
+        max_temp_text = f"Hi {self._forcast.temperature_max}{self._forcast.temperature_text}"
+        min_temp_text = f"Lo {self._forcast.temperature_min}{self._forcast.temperature_text}"
+        self.draw_double_value_panel(panel, "Forcasted", max_temp_text, min_temp_text)
 
     def draw_precip_chance(self, panel):
-        pos = WeatherApp.PANEL_COORDS[panel]
-        precip_area = [pos[0], pos[1], WeatherApp.PANEL_SIZE[0], WeatherApp.PANEL_SIZE[1]]
-        precip_text = f"{self._forcast.precipitation_chance}%"
-        self._render.print_center(precip_area, self._large_font, WeatherApp.TEXT_COLOR, precip_text)
+        self.draw_single_value_panel(panel, "Precip Chance", f"{self._forcast.precipitation_chance}%")
 
     def draw_wind(self, panel):
-        pos = WeatherApp.PANEL_COORDS[panel]
-        wind_speed_area = [pos[0], pos[1], WeatherApp.PANEL_SIZE[0], WeatherApp.PANEL_SIZE[1]/2]
         wind_speed_text = f"{self._forcast.wind_speed}{self._forcast.speed_text}"
-        self._render.print_center(wind_speed_area, self._medium_font, WeatherApp.TEXT_COLOR, wind_speed_text)
-        wind_heading_area = [pos[0], pos[1] + WeatherApp.PANEL_SIZE[1]/2, WeatherApp.PANEL_SIZE[0], WeatherApp.PANEL_SIZE[1]/2]
-        wind_heading_text = f"{self._forcast.wind_heading}"
-        self._render.print_center(wind_heading_area, self._medium_font, WeatherApp.TEXT_COLOR, wind_heading_text)
+        wind_heading_text = f"{self._forcast.wind_heading}°"
+        self.draw_double_value_panel(panel, "Wind", wind_speed_text, wind_heading_text)
 
     def draw_humidity(self, panel):
-        pos = WeatherApp.PANEL_COORDS[panel]
-        humidity_area = [pos[0], pos[1], WeatherApp.PANEL_SIZE[0], WeatherApp.PANEL_SIZE[1]/2]
         humidity_text = f"{self._forcast.humidity}%"
-        self._render.print_center(humidity_area, self._medium_font, WeatherApp.TEXT_COLOR, humidity_text)
-        dew_area = [pos[0], pos[1] + WeatherApp.PANEL_SIZE[1]/2, WeatherApp.PANEL_SIZE[0], WeatherApp.PANEL_SIZE[1]/2]
         dew_text = f"{self._forcast.dewpoint}{self._forcast.temperature_text}"
-        self._render.print_center(dew_area, self._medium_font, WeatherApp.TEXT_COLOR, dew_text)
+        self.draw_double_value_panel(panel, "Humidity/Dew", humidity_text, dew_text)
 
     def draw_date_time(self):
         pos = WeatherApp.DATE_TIME_COORDS

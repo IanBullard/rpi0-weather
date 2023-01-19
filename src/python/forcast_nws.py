@@ -41,19 +41,39 @@ class ForcastNWS(Forcast):
         self._error_message = ""
 
         self._forcast_office_url = None
+        self._nearest_station_observation_url = None
+
         if config.get("forcast_nws", None):
             self._use_20ft_wind = config["forcast_nws"].get("use_20ft_wind", False)
         else:
             self._use_20ft_wind = False
 
-    def _request_forcast_url(self) -> bool:
+    def _request_data_urls(self) -> bool:
         try:
             request_string = f"{ForcastNWS.WEATHER_URL}points/{self._latitude},{self._longitude}"
             response = requests.get(request_string)
             json = response.json()
             self._forcast_office_url = json["properties"]["forecastGridData"]
+
+            # iterate over stations for the nearest one
+            stations_url = json["properties"]["observationStations"]
+            response = requests.get(stations_url)
+            json = response.json()
+            closest_distance2 = 90 * 90 + 180 * 180
+            closest_id = ""
+            for station_data in json["features"]:
+                lon, lat = station_data["geometry"]["coordinates"]
+                dist2 = (self._latitude - lat) * (self._latitude - lat) + (self._longitude - lon) * (self._longitude - lon)
+                if dist2 < closest_distance2:
+                    closest_distance2 = dist2
+                    closest_id = station_data["properties"]["stationIdentifier"]
+
+            self._nearest_station_observation_url = f"{ForcastNWS.WEATHER_URL}stations/{closest_id}/observations"
+            print(f"Station: {self._nearest_station_observation_url}\nForcast: {self._forcast_office_url}")
+
         except:
             self._error_message = f"Failed to retrieve NWS forcast office"
+            print("Failed to retrieve NWS forcast office")
             return False
         return True
 
@@ -66,6 +86,7 @@ class ForcastNWS(Forcast):
                 if valid_time < current_time:
                     result = value["value"]
         except:
+            print("failed to get current value")
             return None
         return result
 
@@ -74,23 +95,34 @@ class ForcastNWS(Forcast):
 
     def update(self) -> bool:
         try:
-            if not self._forcast_office_url:
-                self._request_forcast_url()
+            if not self._nearest_station_observation_url:
+                self._request_data_urls()
+            response = requests.get(self._nearest_station_observation_url)
+            data = response.json()
+            readings = None
+            for feature in data["features"]:
+                # The most recent is always first but sometimes the most recent isn't valid so we
+                #    iterate to the first valid
+                if feature["properties"]["temperature"]["qualityControl"] == "V":
+                    readings = feature["properties"]
+                    break
+
+            if readings is None:
+                print("Failed to update current weather")
+                return
+
+            self._temperature = readings["temperature"]["value"]
+            self._wind_speed = readings["windSpeed"]["value"]
+            self._wind_heading = readings["windDirection"]["value"]
+            self._humidity = readings["relativeHumidity"]["value"]
+            self._dewpoint = readings["dewpoint"]["value"]
+
             response = requests.get(self._forcast_office_url)
             data = response.json()["properties"]
 
-            self._temperature = self._cur_value(data, "temperature")
             self._temperature_max = self._cur_value(data, "maxTemperature")
             self._temperature_min = self._cur_value(data, "minTemperature")
             self._precipitation_chance = self._cur_value(data, "probabilityOfPrecipitation")
-            if self._use_20ft_wind:
-                self._wind_speed = self._cur_value(data, "twentyFootWindSpeed")
-                self._wind_heading = self._cur_value(data, "twentyFootWindDirection")
-            else:
-                self._wind_speed = self._cur_value(data, "windSpeed")
-                self._wind_heading = self._cur_value(data, "windDirection")
-            self._humidity = self._cur_value(data, "relativeHumidity")
-            self._dewpoint = self._cur_value(data, "dewpoint")
 
             self._weather_icon = "unknown"
 
