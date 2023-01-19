@@ -4,7 +4,7 @@ sys.path.append(os.path.abspath('./src/python'))
 from weather_app import WeatherApp
 from inky.auto import auto
 
-inky = auto()
+inky = auto(verbose=True)
 
 # load base configuration
 base_file = open("src/python/configuration.json")
