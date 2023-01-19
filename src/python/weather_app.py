@@ -137,6 +137,7 @@ class Renderer:
 
     def __init__(self, wrapper):
         self._inky = wrapper
+        self._inky.setup()
 
     def show(self):
         self._inky.show()
