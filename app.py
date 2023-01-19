@@ -2,7 +2,9 @@ import sys, os, json
 sys.path.append(os.path.abspath('./src/python'))
 
 from weather_app import WeatherApp
-from inky import Inky
+from inky.auto import auto
+
+inky = auto()
 
 # load base configuration
 base_file = open("src/python/configuration.json")
@@ -15,5 +17,5 @@ try:
 except:
     exit(-1)
 
-app = WeatherApp(Inky, config)
+app = WeatherApp(inky, config)
 app.run()
