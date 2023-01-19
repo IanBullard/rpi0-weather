@@ -228,10 +228,11 @@ def get_forcast_impl(config: dict):
 
 
 class WeatherApp:
-    BACKGROUND_COLOR = Renderer.BLACK
+    BACKGROUND_COLOR = Renderer.WHITE
+    TEXT_COLOR = Renderer.BLACK
     PANEL_SIZE = (196, 196)
     BORDER_WIDTH = 3
-    BORDER_COLOR = Renderer.RED
+    BORDER_COLOR = Renderer.BLACK
     PANEL_COORDS = [
         (BORDER_WIDTH, BORDER_WIDTH),
         (BORDER_WIDTH * 2 + PANEL_SIZE[0], BORDER_WIDTH),
@@ -288,46 +289,46 @@ class WeatherApp:
         pos = WeatherApp.PANEL_COORDS[panel]
         cur_temp_area = [pos[0], pos[1], WeatherApp.PANEL_SIZE[0], WeatherApp.PANEL_SIZE[1]]
         cur_temp_text = f"{self._forcast.temperature}{self._forcast.temperature_text}"
-        self._render.print_center(cur_temp_area, self._large_font, Renderer.WHITE, cur_temp_text)
+        self._render.print_center(cur_temp_area, self._large_font, WeatherApp.TEXT_COLOR, cur_temp_text)
 
     def draw_min_max_temp(self, panel):
         pos = WeatherApp.PANEL_COORDS[panel]
         cur_temp_area = [pos[0], pos[1], WeatherApp.PANEL_SIZE[0], WeatherApp.PANEL_SIZE[1]/2]
         cur_temp_text = f"Hi {self._forcast.temperature_max}{self._forcast.temperature_text}"
-        self._render.print_center(cur_temp_area, self._medium_font, Renderer.WHITE, cur_temp_text)
+        self._render.print_center(cur_temp_area, self._medium_font, WeatherApp.TEXT_COLOR, cur_temp_text)
         cur_temp_area = [pos[0], pos[1] + WeatherApp.PANEL_SIZE[1]/2, WeatherApp.PANEL_SIZE[0], WeatherApp.PANEL_SIZE[1]/2]
         cur_temp_text = f"Lo {self._forcast.temperature_min}{self._forcast.temperature_text}"
-        self._render.print_center(cur_temp_area, self._medium_font, Renderer.WHITE, cur_temp_text)
+        self._render.print_center(cur_temp_area, self._medium_font, WeatherApp.TEXT_COLOR, cur_temp_text)
 
     def draw_precip_chance(self, panel):
         pos = WeatherApp.PANEL_COORDS[panel]
         precip_area = [pos[0], pos[1], WeatherApp.PANEL_SIZE[0], WeatherApp.PANEL_SIZE[1]]
         precip_text = f"{self._forcast.precipitation_chance}%"
-        self._render.print_center(precip_area, self._large_font, Renderer.WHITE, precip_text)
+        self._render.print_center(precip_area, self._large_font, WeatherApp.TEXT_COLOR, precip_text)
 
     def draw_wind(self, panel):
         pos = WeatherApp.PANEL_COORDS[panel]
         wind_speed_area = [pos[0], pos[1], WeatherApp.PANEL_SIZE[0], WeatherApp.PANEL_SIZE[1]/2]
         wind_speed_text = f"{self._forcast.wind_speed}{self._forcast.speed_text}"
-        self._render.print_center(wind_speed_area, self._medium_font, Renderer.WHITE, wind_speed_text)
+        self._render.print_center(wind_speed_area, self._medium_font, WeatherApp.TEXT_COLOR, wind_speed_text)
         wind_heading_area = [pos[0], pos[1] + WeatherApp.PANEL_SIZE[1]/2, WeatherApp.PANEL_SIZE[0], WeatherApp.PANEL_SIZE[1]/2]
         wind_heading_text = f"{self._forcast.wind_heading}"
-        self._render.print_center(wind_heading_area, self._medium_font, Renderer.WHITE, wind_heading_text)
+        self._render.print_center(wind_heading_area, self._medium_font, WeatherApp.TEXT_COLOR, wind_heading_text)
 
     def draw_humidity(self, panel):
         pos = WeatherApp.PANEL_COORDS[panel]
         humidity_area = [pos[0], pos[1], WeatherApp.PANEL_SIZE[0], WeatherApp.PANEL_SIZE[1]/2]
         humidity_text = f"{self._forcast.humidity}%"
-        self._render.print_center(humidity_area, self._medium_font, Renderer.WHITE, humidity_text)
+        self._render.print_center(humidity_area, self._medium_font, WeatherApp.TEXT_COLOR, humidity_text)
         dew_area = [pos[0], pos[1] + WeatherApp.PANEL_SIZE[1]/2, WeatherApp.PANEL_SIZE[0], WeatherApp.PANEL_SIZE[1]/2]
         dew_text = f"{self._forcast.dewpoint}{self._forcast.temperature_text}"
-        self._render.print_center(dew_area, self._medium_font, Renderer.WHITE, dew_text)
+        self._render.print_center(dew_area, self._medium_font, WeatherApp.TEXT_COLOR, dew_text)
 
     def draw_date_time(self):
         pos = WeatherApp.DATE_TIME_COORDS
         time_area = [pos[0], pos[1], WeatherApp.DATE_TIME_SIZE[0], WeatherApp.DATE_TIME_SIZE[1]]
         time_string = datetime.now().strftime("%m/%d/%Y, %a %I:%M%p")
-        self._render.print_center(time_area, self._small_font, Renderer.WHITE, time_string)
+        self._render.print_center(time_area, self._small_font, WeatherApp.TEXT_COLOR, time_string)
 
     def update(self):
         self._forcast.update()
