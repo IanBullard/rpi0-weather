@@ -151,6 +151,8 @@ class Renderer:
         for y in range(image.height):
             for x in range(image.width):
                 color = image.data[x + y * image.width]
+                if image.width == 12:
+                    print(color)
                 if color != 7:
                     self._inky.set_pixel(pos_x + x, pos_y + y, image.data[x + y * image.width])
 
@@ -250,6 +252,7 @@ class WeatherApp:
         self._assets = AssetDb()
         self._weather_icon_name = "unknown"
         self._weather_icon = None
+        self._warning_image = self._assets.load_image("warning")
         self._wait_sec = config.get("update_delay_sec", 0)
         self._small_font = self._assets.load_font("small")
         self._medium_font = self._assets.load_font("medium")
@@ -344,6 +347,7 @@ class WeatherApp:
         self.draw_wind(4)
         self.draw_humidity(5)
         self.draw_date_time()
+        self._render.blit(0, 0, self._warning_image)
         self._render.show()
 
     def run(self):
@@ -352,6 +356,13 @@ class WeatherApp:
             self.update()
             time.sleep(5)
         else:
+            self.update()
+            time.sleep(5)
             while True:
-                self.update()
-                time.sleep(self._wait_sec)
+                self.draw_date_time()
+                self._render.show()
+                time.sleep(10)
+
+                #self.update()
+                #time.sleep(self._wait_sec)
+                #self.draw_date_time()

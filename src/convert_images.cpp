@@ -18,6 +18,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+#include <stdio.h>
 #include <string>
 #include "utils/collector.h"
 #include "utils/palette.h"
@@ -71,25 +72,6 @@ FIBITMAP* resize(FIBITMAP* bitmap, size_t target_width, size_t target_height)
     return result;
 }
 
-void save_image(const char* filename, FIBITMAP* bitmap, AssetDb& db)
-{
-    FIBITMAP* normalized = FreeImage_ConvertTo32Bits(bitmap);
-    int width = FreeImage_GetWidth(bitmap), height = FreeImage_GetHeight(bitmap);
-    RGBQUAD color;
-    uint8_t *data = new uint8_t[width * height];
-    for(int y = 0; y < height; ++y)
-    {
-        for(int x = 0; x < width; ++x)
-        {
-            FreeImage_GetPixelColor(normalized, x, y, &color);
-            data[x + (height-y-1) * width] = closest_color(rgba8888(color.rgbRed, color.rgbGreen, color.rgbBlue, color.rgbReserved));
-        }
-    }
-    db.add_image(filename, width, height, (const char*)data, width * height);
-    delete[] data;
-    FreeImage_Unload(normalized);
-}
-
 void convert_weather_icon(const std::string name, FIMEMORY* contents, AssetDb& db, int width, int height)
 {
     auto img = load_image(contents);
@@ -118,6 +100,54 @@ bool convert_image(ZipFile* zip, const std::string& path, const std::string& fil
     FIMEMORY* icon = convert_to_fimem(contents, content_size);
     convert_weather_icon(file, icon, db, width, height);
     FreeImage_CloseMemory(icon);
+    delete[] contents;
+
+    return true;
+}
+
+bool convert_image(const std::string& path, const std::string& id, AssetDb& db)
+{
+    FILE *fp = fopen(path.c_str(), "rb");
+    fseek(fp, 0, SEEK_END);
+    size_t content_size = ftell(fp);
+    fseek(fp, 0, SEEK_SET);
+    char* contents = new char[content_size];
+    fread(contents, content_size, 1, fp);
+    fclose(fp);
+
+    if(!contents)
+    {
+        log(fmt::format("Cound not load {}...", path));
+        return false;
+    }
+
+    FIMEMORY* image = convert_to_fimem(contents, content_size);
+    auto img = load_image(image);
+
+    unsigned width = FreeImage_GetWidth(img);
+    unsigned height = FreeImage_GetHeight(img);
+    RGBQUAD in;
+    int index = 0;
+    uint8_t *data = new uint8_t[width * height];
+
+    for(unsigned y = 0; y < height; ++y)
+    {
+        for(unsigned x = 0; x < width; ++x)
+        {
+            FreeImage_GetPixelColor(img, x, y, &in);
+            colors.add_color(convert(in));
+            if(is_transparent(in))
+                index = 7;
+            else
+                index = convert_color(convert(in), x, y);
+            data[x + (height-y-1) * width] = index;
+        }
+    }
+    db.add_image(id, width, height, (const char*)data, width * height);
+    delete[] data;
+
+    FreeImage_Unload(img);
+    FreeImage_CloseMemory(image);
     delete[] contents;
 
     return true;
@@ -152,6 +182,8 @@ bool convert_images(AssetDb& db, const std::string& settings)
         std::string path = fmt::format("{}{}", zip_folder, filename);
         convert_image(&icons, path, name, db, width, height);
     }
+
+    convert_image(config["warning"].GetString(), "warning", db);
 
     FreeImage_DeInitialise();
 

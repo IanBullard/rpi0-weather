@@ -66,5 +66,6 @@
             "sourceFile": "static/Inter-Bold.ttf",
             "height": 25
         }
-    }
+    },
+    "warning": "source_assets/warning.bmp"
 }
