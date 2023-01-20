@@ -136,45 +136,69 @@ class Forcast:
 
     @property
     def temperature(self) -> int:
+        value = self._temperature
+        if value is None:
+            return "Err"
         if self._imperial:
-            return int(self._celsius_to_fahrenheit(self._temperature))
-        return int(self._temperature)
+            return int(self._celsius_to_fahrenheit(value))
+        return int(value)
 
     @property
     def temperature_max(self) -> int:
+        value = self._temperature_max
+        if value is None:
+            return "Err"
         if self._imperial:
-            return int(self._celsius_to_fahrenheit(self._temperature_max))
-        return int(self._temperature_max)
+            return int(self._celsius_to_fahrenheit(value))
+        return int(value)
 
     @property
     def temperature_min(self) -> int:
+        value = self._temperature_min
+        if value is None:
+            return "Err"
         if self._imperial:
-            return int(self._celsius_to_fahrenheit(self._temperature_min))
-        return int(self._temperature_min)
+            return int(self._celsius_to_fahrenheit(value))
+        return int(value)
 
     @property
     def precipitation_chance(self) -> int:
-        return int(self._precipitation_chance)
+        value = self._precipitation_chance
+        if value is None:
+            return "Err"
+        return int(value)
 
     @property
     def wind_speed(self) -> int:
+        value = self._wind_speed
+        if value is None:
+            return "Err"
         if self._imperial:
-            return int(self._kph_to_mph(self._wind_speed))
-        return int(self._wind_speed)
+            return int(self._kph_to_mph(value))
+        return int(value)
 
     @property
     def wind_heading(self) -> int:
-        return int(self._wind_heading)
+        value = self._wind_heading
+        if value is None:
+            return "Err"
+        return int(value)
 
     @property
     def humidity(self) -> int:
-        return int(self._humidity)
+        value = self._humidity
+        if value is None:
+            return "Err"
+        return int(value)
 
     @property
     def dewpoint(self) -> int:
+        value = self._dewpoint
+        if value is None:
+            return "Err"
         if self._imperial:
-            return int(self._celsius_to_fahrenheit(self._dewpoint))
-        return int(self._dewpoint)
+            return int(self._celsius_to_fahrenheit(value))
+        return int(value)
 
     @property
     def weather_icon(self) -> str:

@@ -40,3 +40,6 @@ build
 
 # Private info for location of forcast
 local_cconfiguration.json
+
+# log files
+weather.log

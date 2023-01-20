@@ -21,6 +21,7 @@
 from datetime import datetime
 from dateutil import parser
 from forcast import Forcast
+import logging
 import requests
 from typing import Any
 
@@ -69,11 +70,10 @@ class ForcastNWS(Forcast):
                     closest_id = station_data["properties"]["stationIdentifier"]
 
             self._nearest_station_observation_url = f"{ForcastNWS.WEATHER_URL}stations/{closest_id}/observations"
-            print(f"Station: {self._nearest_station_observation_url}\nForcast: {self._forcast_office_url}")
+            logging.debug(f"Station: {self._nearest_station_observation_url}\nForcast: {self._forcast_office_url}")
 
         except:
-            self._error_message = f"Failed to retrieve NWS forcast office"
-            print("Failed to retrieve NWS forcast office")
+            logging.error("Failed to retrieve NWS forcast office")
             return False
         return True
 
@@ -86,7 +86,7 @@ class ForcastNWS(Forcast):
                 if valid_time < current_time:
                     result = value["value"]
         except:
-            print("failed to get current value")
+            logging.error("failed to get current value")
             return None
         return result
 
@@ -108,7 +108,7 @@ class ForcastNWS(Forcast):
                     break
 
             if readings is None:
-                print("Failed to update current weather")
+                logging.error("Failed to update current weather")
                 return
 
             self._temperature = readings["temperature"]["value"]
@@ -124,7 +124,7 @@ class ForcastNWS(Forcast):
             self._temperature_min = self._cur_value(data, "minTemperature")
             self._precipitation_chance = self._cur_value(data, "probabilityOfPrecipitation")
 
-            self._weather_icon = "unknown"
+            use_icon = "unknown"
 
             current_time = datetime.now(None)
             is_day = current_time.hour > 6 and current_time.hour < 18
@@ -148,84 +148,81 @@ class ForcastNWS(Forcast):
             is_sleet = weather == "sleet"
 
             if is_unknown:
-                self._weather_icon = "unknown"
+                use_icon = "unknown"
             if is_hail:
-                self._weather_icon = "hail"
+                use_icon = "hail"
             elif is_thunder:
                 if intensity == "very_light" or intensity == "light":
                     if is_day:
-                        self._weather_icon = "thunderstorm_partial_day"
+                        use_icon = "thunderstorm_partial_day"
                     else:
-                        self._weather_icon = "thunderstorm_partial_night"
+                        use_icon = "thunderstorm_partial_night"
                 else:
-                    self._weather_icon = "thuderstorm_full"
+                    use_icon = "thuderstorm_full"
             elif is_sleet:
-                self._weather_icon = "rain_snow"
+                use_icon = "rain_snow"
             elif is_rain_freezing:
                 if intensity == "very_light" or intensity == "light":
-                    self._weather_icon = "rain_freezing"
+                    use_icon = "rain_freezing"
                 else:
-                    self._weather_icon = "rain_freezing_heavy"
+                    use_icon = "rain_freezing_heavy"
             elif is_foggy:
                 if intensity == "very_light" or intensity == "light":
                     if is_day:
-                        self._weather_icon = "fog_day"
+                        use_icon = "fog_day"
                     else:
-                        self._weather_icon = "fog_night"
+                        use_icon = "fog_night"
                 else:
-                    self._weather_icon = "fog"
+                    use_icon = "fog"
             elif is_snow:
                 if intensity == "very_light" or intensity == "light":
                     if is_day:
-                        self._weather_icon = "snow_partial_day"
+                        use_icon = "snow_partial_day"
                     else:
-                        self._weather_icon = "snow_partial_night"
+                        use_icon = "snow_partial_night"
                 elif intensity == "moderate":
-                    self._weather_icon = "snow_medium"
+                    use_icon = "snow_medium"
                 else:
-                    self._weather_icon = "snow_heavy"
+                    use_icon = "snow_heavy"
             elif is_rain:
                 if intensity == "very_light" or intensity == "light":
                     if is_day:
-                        self._weather_icon = "rain_partial_day"
+                        use_icon = "rain_partial_day"
                     else:
-                        self._weather_icon = "rain_parital_night"
+                        use_icon = "rain_parital_night"
                 elif intensity == "moderate":
-                    self._weather_icon = "rain_light"
+                    use_icon = "rain_light"
                 else:
-                    self._weather_icon = "rain_heavy"
+                    use_icon = "rain_heavy"
             elif is_blowing:
-                self._weather_icon = "windy"
+                use_icon = "windy"
             else:
                 if sky_cover_percent > 80:
-                    self._weather_icon = "clouds_full"
+                    use_icon = "clouds_full"
                 elif sky_cover_percent > 60:
                     if is_day:
-                        self._weather_icon = "cloud_heavy_day"
+                        use_icon = "cloud_heavy_day"
                     else:
-                        self._weather_icon = "cloud_heavy_night"
+                        use_icon = "cloud_heavy_night"
                 elif sky_cover_percent > 40:
                     if is_day:
-                        self._weather_icon = "cloud_medium_day"
+                        use_icon = "cloud_medium_day"
                     else:
-                        self._weather_icon = "cloud_medium_night"
+                        use_icon = "cloud_medium_night"
                 elif sky_cover_percent > 25:
                     if is_day:
-                        self._weather_icon = "cloud_light_day"
+                        use_icon = "cloud_light_day"
                     else:
-                        self._weather_icon = "cloud_light_night"
+                        use_icon = "cloud_light_night"
                 else:
                     if is_day and is_hot:
-                        self._weather_icon = "clear_day_hot"
+                        use_icon = "clear_day_hot"
                     elif is_day:
-                        self._weather_icon = "clear_day"
+                        use_icon = "clear_day"
                     else:
-                        self._weather_icon = "clear_night"
+                        use_icon = "clear_night"
+            self._weather_icon = use_icon
         except:
-            self._error_message = f"Failed to retrieve NWS forcast"
-            print("Failed to retrieve NWS forcast")
+            logging.error("Failed to retrieve NWS forcast")
             return False
         return True
-
-    def error(self) -> str:
-        return self._error_message

@@ -20,10 +20,19 @@
 
 import time
 import sqlite3
+import logging
 import os
 from datetime import datetime
 
 import forcast, forcast_nws
+
+logging.basicConfig(filename="weather.log",
+                    filemode='a',
+                    format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
+                    datefmt='%H:%M:%S',
+                    level=logging.DEBUG)
+
+SHOW_WARNING = False
 
 class Image:
     def __init__(self, id, width, height, data):
@@ -347,7 +356,6 @@ class WeatherApp:
         self.draw_wind(4)
         self.draw_humidity(5)
         self.draw_date_time()
-        self._render.blit(0, 0, self._warning_image)
         self._render.show()
 
     def run(self):
@@ -356,13 +364,7 @@ class WeatherApp:
             self.update()
             time.sleep(5)
         else:
-            self.update()
-            time.sleep(5)
             while True:
+                self.update()
+                time.sleep(self._wait_sec)
                 self.draw_date_time()
-                self._render.show()
-                time.sleep(10)
-
-                #self.update()
-                #time.sleep(self._wait_sec)
-                #self.draw_date_time()
