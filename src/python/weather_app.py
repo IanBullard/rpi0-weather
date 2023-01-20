@@ -367,4 +367,3 @@ class WeatherApp:
             while True:
                 self.update()
                 time.sleep(self._wait_sec)
-                self.draw_date_time()
