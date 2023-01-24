@@ -1,6 +1,8 @@
 import sys, os, json
-app_dir = os.path.abspath('./src/python')
-print(app_dir)
+
+THIS_DIR = os.getcwd()
+
+app_dir = os.path.abspath(f'{THIS_DIR}/src/python')
 sys.path.append(app_dir)
 
 from weather_app import WeatherApp
