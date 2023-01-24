@@ -1,5 +1,7 @@
 import sys, os, json
-sys.path.append(os.path.abspath('./src/python'))
+app_dir = os.path.abspath('./src/python')
+print(app_dir)
+sys.path.append(app_dir)
 
 from weather_app import WeatherApp
 from inky.auto import auto
