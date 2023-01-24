@@ -1,0 +1,8 @@
+[Unit]
+Description=Weather
+
+[Service]
+ExecStart=/home/admin/rpi0-weather/run.sh
+
+[Install]
+WantedBy=multi-user.target
