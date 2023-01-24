@@ -4,7 +4,10 @@ After=multi-user.target
 
 [Service]
 Type=simple
-Restart=always
+Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+Environment=HOME=/home/admin
+Environment=PWD=/home/admin/rpi0-weather
+Restart=on-failure
 ExecStart=/usr/bin/python3 /home/admin/rpi0-weather/app.py
 
 [Install]
