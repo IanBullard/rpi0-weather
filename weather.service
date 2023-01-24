@@ -1,8 +1,11 @@
 [Unit]
 Description=Weather
+After=multi-user.target
 
 [Service]
-ExecStart=/home/admin/rpi0-weather/run.sh
+Type=simple
+Restart=always
+ExecStart=/usr/bin/python3 /home/admin/rpi0-weather/app.py
 
 [Install]
 WantedBy=multi-user.target
