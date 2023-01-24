@@ -4,7 +4,7 @@ Description=Weather
 [Service]
 WorkingDirectory=/home/admin/rpi0-weather
 ExecStart=/usr/bin/python3 /home/admin/rpi0-weather/app.py
-
+User=admin
 Restart=always
 RestartSec=10
 
