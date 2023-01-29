@@ -39,7 +39,7 @@ build
 .vscode
 
 # Private info for location of forcast
-local_cconfiguration.json
+local_configuration.json
 
 # log files
 weather.log
