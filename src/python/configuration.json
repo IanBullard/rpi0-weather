@@ -2,6 +2,6 @@
     "locationName": "Mount Marcy",
     "latitude": 44.1076,
     "longitude": -73.9209,
-    "update_delay_sec": 60,
+    "update_on_the_minutes": [0, 15, 30, 45],
     "forcast_source": "NWS"
 }

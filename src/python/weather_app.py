@@ -262,11 +262,20 @@ class WeatherApp:
         self._weather_icon_name = "unknown"
         self._weather_icon = None
         self._warning_image = self._assets.load_image("warning")
-        self._wait_sec = config.get("update_delay_sec", 0)
+        self._update_on_the_minutes = config.get("update_on_the_minutes", 0)
         self._small_font = self._assets.load_font("small")
         self._medium_font = self._assets.load_font("medium")
         self._large_font = self._assets.load_font("large")
         self._title_font = self._assets.load_font("titles")
+        self._testing = False
+
+    @property
+    def testing(self):
+        return self._testing
+
+    @testing.setter
+    def testing(self, enabled):
+        self._testing = enabled
 
     def draw_borders(self):
         # aliases to make draw calls easier to read
@@ -359,11 +368,15 @@ class WeatherApp:
         self._render.show()
 
     def run(self):
-        if self._wait_sec == 0:
+        if self._testing:
             # We're debugging, just run once with a short wait
             self.update()
             time.sleep(5)
         else:
             while True:
                 self.update()
-                time.sleep(self._wait_sec)
+                time.sleep(60)
+                now = datetime.now()
+                while now.minute not in self._update_on_the_minutes:
+                    time.sleep(55)
+                    now = datetime.now()
