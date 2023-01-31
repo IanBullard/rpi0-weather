@@ -138,7 +138,7 @@ class Forcast:
     def temperature(self) -> int:
         value = self._temperature
         if value is None:
-            return "Err"
+            return "?"
         if self._imperial:
             return int(self._celsius_to_fahrenheit(value))
         return int(value)
@@ -147,7 +147,7 @@ class Forcast:
     def temperature_max(self) -> int:
         value = self._temperature_max
         if value is None:
-            return "Err"
+            return "?"
         if self._imperial:
             return int(self._celsius_to_fahrenheit(value))
         return int(value)
@@ -156,7 +156,7 @@ class Forcast:
     def temperature_min(self) -> int:
         value = self._temperature_min
         if value is None:
-            return "Err"
+            return "?"
         if self._imperial:
             return int(self._celsius_to_fahrenheit(value))
         return int(value)
@@ -165,14 +165,14 @@ class Forcast:
     def precipitation_chance(self) -> int:
         value = self._precipitation_chance
         if value is None:
-            return "Err"
+            return "?"
         return int(value)
 
     @property
     def wind_speed(self) -> int:
         value = self._wind_speed
         if value is None:
-            return "Err"
+            return "?"
         if self._imperial:
             return int(self._kph_to_mph(value))
         return int(value)
@@ -181,21 +181,21 @@ class Forcast:
     def wind_heading(self) -> int:
         value = self._wind_heading
         if value is None:
-            return "Err"
+            return "?"
         return int(value)
 
     @property
     def humidity(self) -> int:
         value = self._humidity
         if value is None:
-            return "Err"
+            return "?"
         return int(value)
 
     @property
     def dewpoint(self) -> int:
         value = self._dewpoint
         if value is None:
-            return "Err"
+            return "?"
         if self._imperial:
             return int(self._celsius_to_fahrenheit(value))
         return int(value)
