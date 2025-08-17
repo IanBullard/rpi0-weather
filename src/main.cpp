@@ -13,13 +13,10 @@ int main() {
         return 1;
     }
     
-    std::cout << "Weather app initialized. Updating display..." << std::endl;
+    std::cout << "Weather app initialized. Starting main loop..." << std::endl;
     
-    // Update the display once
-    app.update();
-    
-    std::cout << "Display updated. Press Enter to exit..." << std::endl;
-    std::cin.get();
+    // Run the main event loop (will handle SDL events or single update)
+    app.run();
     
     // Cleanup
     app.shutdown();

@@ -3,6 +3,10 @@
 extern "C" {
 #include <inky.h>
 }
+
+#ifdef HAVE_SDL3
+#include <SDL3/SDL.h>
+#endif
 #include <iostream>
 #include <ctime>
 #include <iomanip>
@@ -11,7 +15,11 @@ extern "C" {
 // Declare the mock data function
 WeatherData create_mock_weather_data();
 
-WeatherApp::WeatherApp() : display_(nullptr), initialized_(false) {
+WeatherApp::WeatherApp() 
+    : display_(nullptr)
+    , use_sdl_emulator_(true) // Default to SDL emulator for now
+    , initialized_(false) 
+{
 }
 
 WeatherApp::~WeatherApp() {
@@ -23,11 +31,27 @@ bool WeatherApp::initialize() {
         return true;
     }
     
-    // Initialize inky display (use emulator mode)
-    display_ = inky_init(true);
-    if (!display_) {
-        std::cerr << "Failed to initialize inky display" << std::endl;
-        return false;
+    if (use_sdl_emulator_) {
+        // Initialize SDL3 emulator
+        sdl_emulator_ = std::make_unique<SDL3Emulator>();
+        if (!sdl_emulator_->initialize()) {
+            std::cerr << "Failed to initialize SDL3 emulator" << std::endl;
+            return false;
+        }
+        
+        // Set up button callback
+        sdl_emulator_->set_button_callback([this](int button) {
+            this->on_button_pressed(button);
+        });
+        
+        display_ = nullptr; // Don't use inky_c when using SDL
+    } else {
+        // Initialize inky display (use emulator mode)
+        display_ = inky_init(true);
+        if (!display_) {
+            std::cerr << "Failed to initialize inky display" << std::endl;
+            return false;
+        }
     }
     
     initialized_ = true;
@@ -55,11 +79,44 @@ void WeatherApp::update() {
     std::cout << "Display updated with weather data" << std::endl;
 }
 
+void WeatherApp::run() {
+    if (!initialized_) {
+        std::cerr << "App not initialized" << std::endl;
+        return;
+    }
+    
+    if (use_sdl_emulator_) {
+        // Update display once initially
+        update();
+        
+        // SDL event loop
+        while (!sdl_emulator_->should_quit()) {
+            sdl_emulator_->poll_events();
+            // Add small delay to prevent 100% CPU usage
+#ifdef HAVE_SDL3
+            SDL_Delay(16); // ~60 FPS
+#else
+            // In console mode, just run once and exit
+            break;
+#endif
+        }
+    } else {
+        // Single update for console mode
+        update();
+    }
+}
+
 void WeatherApp::shutdown() {
+    if (sdl_emulator_) {
+        sdl_emulator_->shutdown();
+        sdl_emulator_.reset();
+    }
+    
     if (display_) {
         inky_destroy(display_);
         display_ = nullptr;
     }
+    
     initialized_ = false;
     std::cout << "Weather app shutdown" << std::endl;
 }
@@ -128,15 +185,39 @@ void WeatherApp::draw_panel_border(int panel_x, int panel_y, int panel_w, int pa
         // Top and bottom borders
         for (int x = panel_x - i; x < panel_x + panel_w + i; x++) {
             if (x >= 0 && x < SCREEN_WIDTH) {
-                if (panel_y - i >= 0) inky_set_pixel(display_, x, panel_y - i, INKY_BLACK);
-                if (panel_y + panel_h + i < SCREEN_HEIGHT) inky_set_pixel(display_, x, panel_y + panel_h + i, INKY_BLACK);
+                if (panel_y - i >= 0) {
+                    if (use_sdl_emulator_ && sdl_emulator_) {
+                        sdl_emulator_->set_pixel(x, panel_y - i, 0); // Black
+                    } else if (display_) {
+                        inky_set_pixel(display_, x, panel_y - i, INKY_BLACK);
+                    }
+                }
+                if (panel_y + panel_h + i < SCREEN_HEIGHT) {
+                    if (use_sdl_emulator_ && sdl_emulator_) {
+                        sdl_emulator_->set_pixel(x, panel_y + panel_h + i, 0); // Black
+                    } else if (display_) {
+                        inky_set_pixel(display_, x, panel_y + panel_h + i, INKY_BLACK);
+                    }
+                }
             }
         }
         // Left and right borders
         for (int y = panel_y - i; y < panel_y + panel_h + i; y++) {
             if (y >= 0 && y < SCREEN_HEIGHT) {
-                if (panel_x - i >= 0) inky_set_pixel(display_, panel_x - i, y, INKY_BLACK);
-                if (panel_x + panel_w + i < SCREEN_WIDTH) inky_set_pixel(display_, panel_x + panel_w + i, y, INKY_BLACK);
+                if (panel_x - i >= 0) {
+                    if (use_sdl_emulator_ && sdl_emulator_) {
+                        sdl_emulator_->set_pixel(panel_x - i, y, 0); // Black
+                    } else if (display_) {
+                        inky_set_pixel(display_, panel_x - i, y, INKY_BLACK);
+                    }
+                }
+                if (panel_x + panel_w + i < SCREEN_WIDTH) {
+                    if (use_sdl_emulator_ && sdl_emulator_) {
+                        sdl_emulator_->set_pixel(panel_x + panel_w + i, y, 0); // Black
+                    } else if (display_) {
+                        inky_set_pixel(display_, panel_x + panel_w + i, y, INKY_BLACK);
+                    }
+                }
             }
         }
     }
@@ -165,7 +246,11 @@ void WeatherApp::draw_text_centered(int x, int y, int w, int h, const std::strin
             if (px >= 0 && px < SCREEN_WIDTH && py >= 0 && py < SCREEN_HEIGHT) {
                 // Simple pattern to represent text
                 if ((tx + ty) % 4 == 0) {
-                    inky_set_pixel(display_, px, py, color);
+                    if (use_sdl_emulator_ && sdl_emulator_) {
+                        sdl_emulator_->set_pixel(px, py, color);
+                    } else if (display_) {
+                        inky_set_pixel(display_, px, py, color);
+                    }
                 }
             }
         }
@@ -173,9 +258,43 @@ void WeatherApp::draw_text_centered(int x, int y, int w, int h, const std::strin
 }
 
 void WeatherApp::clear_display() {
-    inky_clear(display_, INKY_WHITE);
+    if (use_sdl_emulator_ && sdl_emulator_) {
+        sdl_emulator_->clear(1); // White
+    } else if (display_) {
+        inky_clear(display_, INKY_WHITE);
+    }
 }
 
 void WeatherApp::show_display() {
-    inky_update(display_);
+    if (use_sdl_emulator_ && sdl_emulator_) {
+        sdl_emulator_->update();
+    } else if (display_) {
+        inky_update(display_);
+    }
+}
+
+void WeatherApp::on_button_pressed(int button) {
+    std::cout << "Button " << char('A' + button) << " action: ";
+    
+    switch (button) {
+        case 0: // Button A
+            std::cout << "Refresh weather data" << std::endl;
+            update();
+            break;
+        case 1: // Button B  
+            std::cout << "Toggle temperature units" << std::endl;
+            // TODO: Implement unit toggle
+            break;
+        case 2: // Button C
+            std::cout << "Show detailed forecast" << std::endl;
+            // TODO: Implement detailed view
+            break;
+        case 3: // Button D
+            std::cout << "Settings menu" << std::endl;
+            // TODO: Implement settings
+            break;
+        default:
+            std::cout << "Unknown button" << std::endl;
+            break;
+    }
 }

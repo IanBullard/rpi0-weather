@@ -10,6 +10,28 @@ project(rpi0-weather
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# CPM (CMake Package Manager) setup
+include(cmake/CPM.cmake)
+
+# Add SDL3 using CPM
+CPMAddPackage(
+    NAME SDL3
+    GITHUB_REPOSITORY libsdl-org/SDL
+    GIT_TAG main
+    OPTIONS
+        "SDL_SHARED OFF"
+        "SDL_STATIC ON"
+        "SDL_TEST OFF"
+        "SDL_DISABLE_INSTALL ON"
+)
+
+if(SDL3_ADDED)
+    message(STATUS "SDL3 added via CPM - enabling emulator support")
+    add_definitions(-DHAVE_SDL3)
+else()
+    message(STATUS "SDL3 not available - building without emulator support")
+endif()
+
 # Build inky_c library
 set(INKY_C_DIR ${CMAKE_CURRENT_SOURCE_DIR}/lib/inky_c)
 set(INKY_C_SOURCES
@@ -32,6 +54,7 @@ set(SOURCES
     src/main.cpp
     src/weather_app.cpp
     src/weather_data.cpp
+    src/sdl_emulator.cpp
 )
 
 # Create executable
@@ -39,6 +62,9 @@ add_executable(${PROJECT_NAME} ${SOURCES})
 
 # Link libraries
 target_link_libraries(${PROJECT_NAME} PRIVATE inky_c)
+if(SDL3_ADDED)
+    target_link_libraries(${PROJECT_NAME} PRIVATE SDL3::SDL3)
+endif()
 
 # Compiler-specific options
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")

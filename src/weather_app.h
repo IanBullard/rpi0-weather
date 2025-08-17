@@ -1,6 +1,7 @@
 #pragma once
 
 #include "weather_data.h"
+#include "sdl_emulator.h"
 #include <memory>
 
 // Forward declaration for inky_c
@@ -20,6 +21,9 @@ public:
     
     // Update weather data and refresh display
     void update();
+    
+    // Run the main event loop
+    void run();
     
     // Shutdown and cleanup
     void shutdown();
@@ -64,5 +68,13 @@ private:
     
     // Display handle
     inky_t* display_;
+    
+    // SDL3 emulator (for desktop testing)
+    std::unique_ptr<SDL3Emulator> sdl_emulator_;
+    bool use_sdl_emulator_;
+    
     bool initialized_;
+    
+    // Button handling
+    void on_button_pressed(int button);
 };
