@@ -1,45 +1,81 @@
-# Prerequisites
-*.d
+# Build directories
+build/
+.xmake/
+
+# CMake generated files
+CMakeCache.txt
+CMakeFiles/
+Makefile
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+CTestTestfile.cmake
+_deps/
 
 # Compiled Object files
-*.slo
-*.lo
 *.o
 *.obj
+*.slo
+*.lo
 
 # Precompiled Headers
 *.gch
 *.pch
 
-# Compiled Dynamic libraries
+# Libraries
+*.a
+*.lib
+*.la
+*.lai
 *.so
+*.so.*
 *.dylib
 *.dll
 
-# Fortran module files
-*.mod
-*.smod
-
-# Compiled Static libraries
-*.lai
-*.la
-*.a
-*.lib
-
 # Executables
+rpi0-weather
 *.exe
 *.out
 *.app
 
-# Python cache
-__pycache__
+# Debug files
+*.dSYM/
+*.su
+*.idb
+*.pdb
 
-build
-.xmake
-.vscode
+# Python cache (for test script)
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+*.pyo
 
-# Private info for location of forcast
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Private configuration files
 local_configuration.json
+config.json
 
-# log files
+# Log files
+*.log
 weather.log
+
+# PPM images from emulator saves
+*.ppm
+
+# Temporary files
+*.tmp
+*.temp
+
+rpi0-weather.*
