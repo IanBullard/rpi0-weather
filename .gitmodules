@@ -1,0 +1,3 @@
+[submodule "lib/inky_c"]
+	path = lib/inky_c
+	url = git@github.com:IanBullard/inky_c.git
