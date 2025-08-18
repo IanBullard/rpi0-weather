@@ -25,6 +25,31 @@ CPMAddPackage(
         "SDL_DISABLE_INSTALL ON"
 )
 
+# Add cpp-httplib for HTTP requests
+CPMAddPackage(
+    NAME httplib
+    GITHUB_REPOSITORY yhirose/cpp-httplib
+    VERSION 0.14.3
+    OPTIONS
+        "HTTPLIB_REQUIRE_OPENSSL OFF"
+        "HTTPLIB_USE_POLL ON"
+)
+
+# Add nlohmann/json for JSON parsing
+CPMAddPackage(
+    NAME nlohmann_json
+    GITHUB_REPOSITORY nlohmann/json
+    VERSION 3.11.3
+)
+
+# Add stb libraries for image and font handling
+CPMAddPackage(
+    NAME stb
+    GITHUB_REPOSITORY nothings/stb
+    GIT_TAG master
+    DOWNLOAD_ONLY YES
+)
+
 if(SDL3_ADDED)
     message(STATUS "SDL3 added via CPM - enabling emulator support")
     add_definitions(-DHAVE_SDL3)
@@ -48,6 +73,9 @@ target_include_directories(inky_c PUBLIC ${INKY_C_DIR})
 # Include directories
 include_directories(include)
 include_directories(${INKY_C_DIR})
+if(stb_ADDED)
+    include_directories(${stb_SOURCE_DIR})
+endif()
 
 # Source files
 set(SOURCES
@@ -55,6 +83,10 @@ set(SOURCES
     src/weather_app.cpp
     src/weather_data.cpp
     src/sdl_emulator.cpp
+    src/nws_client.cpp
+    src/weather_service.cpp
+    src/bitmap_font.cpp
+    src/font_renderer.cpp
 )
 
 # Create executable
@@ -64,6 +96,34 @@ add_executable(${PROJECT_NAME} ${SOURCES})
 target_link_libraries(${PROJECT_NAME} PRIVATE inky_c)
 if(SDL3_ADDED)
     target_link_libraries(${PROJECT_NAME} PRIVATE SDL3::SDL3)
+endif()
+if(httplib_ADDED)
+    target_link_libraries(${PROJECT_NAME} PRIVATE httplib::httplib)
+endif()
+if(nlohmann_json_ADDED)
+    target_link_libraries(${PROJECT_NAME} PRIVATE nlohmann_json::nlohmann_json)
+endif()
+
+# Create test executable for NWS API
+add_executable(test_nws_api 
+    src/test_nws_api.cpp
+    src/nws_client.cpp
+    src/weather_service.cpp
+    src/weather_data.cpp
+)
+target_link_libraries(test_nws_api PRIVATE inky_c)
+if(httplib_ADDED)
+    target_link_libraries(test_nws_api PRIVATE httplib::httplib)
+endif()
+if(nlohmann_json_ADDED)
+    target_link_libraries(test_nws_api PRIVATE nlohmann_json::nlohmann_json)
+endif()
+
+# Font converter tool
+add_executable(font_converter tools/font_converter.cpp)
+target_compile_features(font_converter PRIVATE cxx_std_17)
+if(stb_ADDED)
+    target_include_directories(font_converter PRIVATE ${stb_SOURCE_DIR})
 endif()
 
 # Compiler-specific options

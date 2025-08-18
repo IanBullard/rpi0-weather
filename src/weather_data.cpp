@@ -9,7 +9,7 @@ WeatherData create_mock_weather_data() {
     // Mock current conditions (similar to what we got from NWS API test)
     data.temperature_c = 19;
     data.humidity_percent = 68;
-    data.wind_speed_kph = 15;
+    data.wind_speed_kmh = 15;
     data.wind_direction_deg = 270;
     data.dewpoint_c = 13;
     
@@ -20,7 +20,7 @@ WeatherData create_mock_weather_data() {
     
     // Mock condition
     data.weather_icon = "clear_day";
-    data.location_name = "Mount Marcy";
+    data.location = "Mount Marcy";
     
     data.is_valid = true;
     

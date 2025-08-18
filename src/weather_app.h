@@ -1,6 +1,7 @@
 #pragma once
 
 #include "weather_data.h"
+#include "weather_service.h"
 #include "sdl_emulator.h"
 #include <memory>
 
@@ -27,6 +28,9 @@ public:
     
     // Shutdown and cleanup
     void shutdown();
+    
+    // Set location for weather data
+    void setLocation(double latitude, double longitude);
     
 private:
     // Display functions
@@ -72,6 +76,10 @@ private:
     // SDL3 emulator (for desktop testing)
     std::unique_ptr<SDL3Emulator> sdl_emulator_;
     bool use_sdl_emulator_;
+    
+    // Weather service for API calls
+    std::unique_ptr<WeatherService> weather_service_;
+    bool use_real_api_;
     
     bool initialized_;
     

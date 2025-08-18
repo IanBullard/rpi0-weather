@@ -18,8 +18,10 @@ WeatherData create_mock_weather_data();
 WeatherApp::WeatherApp() 
     : display_(nullptr)
     , use_sdl_emulator_(true) // Default to SDL emulator for now
+    , use_real_api_(true) // Use real API by default
     , initialized_(false) 
 {
+    weather_service_ = std::make_unique<WeatherService>();
 }
 
 WeatherApp::~WeatherApp() {
@@ -65,12 +67,26 @@ void WeatherApp::update() {
         return;
     }
     
-    // Get weather data (using mock data for now)
-    WeatherData data = create_mock_weather_data();
+    // Get weather data
+    WeatherData data;
+    if (use_real_api_ && weather_service_) {
+        std::cout << "Fetching weather data from NWS API..." << std::endl;
+        data = weather_service_->fetchWeatherData();
+    } else {
+        std::cout << "Using mock weather data" << std::endl;
+        data = create_mock_weather_data();
+    }
     
     if (!data.is_valid) {
         std::cerr << "Invalid weather data: " << data.error_message << std::endl;
-        return;
+        // Try to use mock data as fallback
+        if (use_real_api_) {
+            std::cout << "Falling back to mock data" << std::endl;
+            data = create_mock_weather_data();
+        }
+        if (!data.is_valid) {
+            return;
+        }
     }
     
     // Render to display
@@ -273,17 +289,33 @@ void WeatherApp::show_display() {
     }
 }
 
+void WeatherApp::setLocation(double latitude, double longitude) {
+    if (weather_service_) {
+        weather_service_->setLocation(latitude, longitude);
+    }
+}
+
 void WeatherApp::on_button_pressed(int button) {
     std::cout << "Button " << char('A' + button) << " action: ";
     
     switch (button) {
         case 0: // Button A
             std::cout << "Refresh weather data" << std::endl;
-            update();
+            if (weather_service_) {
+                // Force refresh from API
+                WeatherData data = weather_service_->forceFetch();
+                if (data.is_valid) {
+                    render_weather(data);
+                }
+            } else {
+                update();
+            }
             break;
         case 1: // Button B  
-            std::cout << "Toggle temperature units" << std::endl;
-            // TODO: Implement unit toggle
+            std::cout << "Toggle API/Mock mode" << std::endl;
+            use_real_api_ = !use_real_api_;
+            std::cout << "Now using: " << (use_real_api_ ? "Real API" : "Mock data") << std::endl;
+            update();
             break;
         case 2: // Button C
             std::cout << "Show detailed forecast" << std::endl;
