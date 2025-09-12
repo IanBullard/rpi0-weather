@@ -10,14 +10,25 @@ project(rpi0-weather
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Detect target platform and set defaults
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm" OR CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64")
+    set(BUILD_EMULATOR_DEFAULT OFF)
+    set(PLATFORM_MSG "ARM processor detected - SDL3 emulator disabled by default")
+else()
+    set(BUILD_EMULATOR_DEFAULT ON)  
+    set(PLATFORM_MSG "x86/x64 processor detected - SDL3 emulator enabled by default")
+endif()
+
 # Build options
-option(BUILD_EMULATOR "Build with SDL3 emulator support (not needed for Pi hardware)" ON)
+option(BUILD_EMULATOR "Build with SDL3 emulator support (not needed for Pi hardware)" ${BUILD_EMULATOR_DEFAULT})
+message(STATUS ${PLATFORM_MSG})
 
 # CPM (CMake Package Manager) setup
 include(cmake/CPM.cmake)
 
-# Conditionally add SDL3 using CPM (only for emulator builds)
+# Only fetch SDL3 if emulator build is requested
 if(BUILD_EMULATOR)
+    message(STATUS "BUILD_EMULATOR=ON - Fetching and building SDL3 dependency")
     CPMAddPackage(
         NAME SDL3
         GITHUB_REPOSITORY libsdl-org/SDL
@@ -28,6 +39,8 @@ if(BUILD_EMULATOR)
             "SDL_TEST OFF"
             "SDL_DISABLE_INSTALL ON"
     )
+else()
+    message(STATUS "BUILD_EMULATOR=OFF - SDL3 completely skipped (no download, no build)")
 endif()
 
 # Add cpp-httplib for HTTP requests
@@ -55,11 +68,16 @@ CPMAddPackage(
     DOWNLOAD_ONLY YES
 )
 
-if(BUILD_EMULATOR AND SDL3_ADDED)
-    message(STATUS "SDL3 added via CPM - enabling emulator support")
-    add_definitions(-DHAVE_SDL3)
+# Set compile definitions based on SDL3 availability
+if(BUILD_EMULATOR)
+    if(SDL3_ADDED)
+        message(STATUS "SDL3 successfully added - emulator support enabled")
+        add_definitions(-DHAVE_SDL3)
+    else()
+        message(WARNING "BUILD_EMULATOR=ON but SDL3 failed to load - emulator support disabled")
+    endif()
 else()
-    message(STATUS "Building without emulator support (SDL3 disabled)")
+    message(STATUS "SDL3 disabled - building for hardware-only (no emulator)")
 endif()
 
 # Build inky_c library
@@ -103,6 +121,7 @@ add_executable(${PROJECT_NAME} ${SOURCES})
 target_link_libraries(${PROJECT_NAME} PRIVATE inky_c)
 if(BUILD_EMULATOR AND SDL3_ADDED)
     target_link_libraries(${PROJECT_NAME} PRIVATE SDL3::SDL3)
+    message(STATUS "Linking SDL3 for emulator support")
 endif()
 if(httplib_ADDED)
     target_link_libraries(${PROJECT_NAME} PRIVATE httplib::httplib)

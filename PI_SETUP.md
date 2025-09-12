@@ -75,14 +75,15 @@ git clone <your-repository-url> rpi0-weather
 cd rpi0-weather
 mkdir build
 cd build
-# Configure build without SDL3 emulator (not needed on Pi hardware)
-# This avoids SDL3 dependencies that require X11/Wayland
-cmake -DBUILD_EMULATOR=OFF ..
+
+# Build (SDL3 emulator automatically disabled on ARM processors)
+cmake ..
 make -j$(nproc)
 
-# Alternative: If you want to build with emulator support for testing
-# cmake -DBUILD_EMULATOR=ON ..
-# (requires additional system packages for X11/SDL)
+# Note: The build system automatically detects Pi hardware and skips SDL3
+# If you need to explicitly control SDL3, use:
+# cmake -DBUILD_EMULATOR=OFF ..  # Force disable SDL3
+# cmake -DBUILD_EMULATOR=ON ..   # Force enable SDL3 (requires X11/Wayland packages)
 ```
 
 ### 2. Configuration
