@@ -126,6 +126,13 @@ if(stb_ADDED)
     target_include_directories(font_converter PRIVATE ${stb_SOURCE_DIR})
 endif()
 
+# Image converter tool
+add_executable(image_converter tools/image_converter.cpp)
+target_compile_features(image_converter PRIVATE cxx_std_17)
+if(stb_ADDED)
+    target_include_directories(image_converter PRIVATE ${stb_SOURCE_DIR})
+endif()
+
 # Compiler-specific options
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -pedantic)

@@ -54,6 +54,8 @@ public:
         
         font_name_ = filename.substr(filename.find_last_of("/\\") + 1);
         font_name_ = font_name_.substr(0, font_name_.find_last_of("."));
+        // Replace hyphens with underscores for valid C++ identifiers
+        std::replace(font_name_.begin(), font_name_.end(), '-', '_');
         
         return true;
     }

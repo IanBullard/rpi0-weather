@@ -162,22 +162,22 @@ WeatherData WeatherService::fetchFromAPI() {
 }
 
 std::string WeatherService::selectWeatherIcon(const std::string& condition, int sky_cover, bool is_day) {
-    // Map weather conditions to icon names
-    // This follows the logic from the Python implementation
+    // Map weather conditions to numbered icon names (00-47)
+    // Based on common weather icon mapping schemes
     
     if (condition == "thunderstorms") {
-        return is_day ? "⛈️ day" : "⛈️ night";
+        return is_day ? "17" : "18";  // Thunderstorm day/night
     } else if (condition == "rain" || condition == "rain_showers") {
-        return is_day ? "🌧️ day" : "🌧️ night";
+        return is_day ? "09" : "10";  // Rain day/night
     } else if (condition == "snow" || condition == "snow_showers") {
-        return is_day ? "❄️ day" : "❄️ night";
+        return is_day ? "13" : "14";  // Snow day/night
     } else if (condition == "fog") {
-        return "🌫️";
+        return "20";  // Fog
     } else if (sky_cover > 80) {
-        return "☁️";
+        return "04";  // Cloudy
     } else if (sky_cover > 25) {
-        return is_day ? "⛅ day" : "☁️ night";
+        return is_day ? "02" : "03";  // Partly cloudy day/night
     } else {
-        return is_day ? "☀️" : "🌙";
+        return is_day ? "01" : "31";  // Clear day/night
     }
 }

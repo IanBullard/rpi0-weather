@@ -34,6 +34,9 @@ _deps/
 
 # Executables
 rpi0-weather
+font_converter
+image_converter
+test_nws_api
 *.exe
 *.out
 *.app

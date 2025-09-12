@@ -1,10 +1,10 @@
-// Auto-generated font data for Inter-Regular size 48
-#ifndef INTER-REGULAR_48_H
-#define INTER-REGULAR_48_H
+// Auto-generated font data for Inter_Regular size 48
+#ifndef INTER_REGULAR_48_H
+#define INTER_REGULAR_48_H
 
 #include <cstdint>
 
-namespace font_Inter-Regular_48 {
+namespace font_Inter_Regular_48 {
 
 constexpr int size = 48;
 constexpr int line_height = 48;
@@ -16509,6 +16509,6 @@ const uint8_t atlas_data[] = {
 
 };
 
-} // namespace font_Inter-Regular_30
+} // namespace font_Inter_Regular_30
 
-#endif // INTER-REGULAR_48_H
+#endif // INTER_REGULAR_48_H

@@ -5,7 +5,7 @@
 #include "sdl_emulator.h"
 #include <memory>
 
-// Forward declaration for inky_c
+// Forward declarations
 typedef struct inky_display inky_t;
 
 /**
@@ -32,13 +32,30 @@ public:
     // Set location for weather data
     void setLocation(double latitude, double longitude);
     
+    // Test mode: render single frame and save as PNG
+    bool renderTestFrame(const std::string& output_file);
+    
 private:
     // Display functions
     void render_weather(const WeatherData& data);
     void draw_panel_border(int panel_x, int panel_y, int panel_w, int panel_h);
     void draw_text_centered(int x, int y, int w, int h, const std::string& text, int color);
+    void draw_weather_icon(int x, int y, int w, int h, const std::string& icon_name);
     void clear_display();
     void show_display();
+    
+    // Test mode rendering (renders to a custom pixel setter function)
+    template<typename PixelSetter>
+    void renderWeatherToBuffer(const WeatherData& data, PixelSetter setPixel);
+    
+    template<typename PixelSetter>
+    void drawPanelBorderToBuffer(int panel_x, int panel_y, int panel_w, int panel_h, PixelSetter setPixel);
+    
+    template<typename PixelSetter>
+    void drawTextCenteredToBuffer(int x, int y, int w, int h, const std::string& text, int color, PixelSetter setPixel);
+    
+    template<typename PixelSetter>
+    void drawWeatherIconToBuffer(int x, int y, int w, int h, const std::string& icon_name, PixelSetter setPixel);
     
     // Display constants
     static constexpr int SCREEN_WIDTH = 600;
@@ -80,6 +97,7 @@ private:
     // Weather service for API calls
     std::unique_ptr<WeatherService> weather_service_;
     bool use_real_api_;
+    
     
     bool initialized_;
     

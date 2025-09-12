@@ -1,10 +1,10 @@
-// Auto-generated font data for Inter-Regular size 32
-#ifndef INTER-REGULAR_32_H
-#define INTER-REGULAR_32_H
+// Auto-generated font data for Inter_Regular size 32
+#ifndef INTER_REGULAR_32_H
+#define INTER_REGULAR_32_H
 
 #include <cstdint>
 
-namespace font_Inter-Regular_32 {
+namespace font_Inter_Regular_32 {
 
 constexpr int size = 32;
 constexpr int line_height = 32;
@@ -4221,6 +4221,6 @@ const uint8_t atlas_data[] = {
 
 };
 
-} // namespace font_Inter-Regular_20
+} // namespace font_Inter_Regular_20
 
-#endif // INTER-REGULAR_32_H
+#endif // INTER_REGULAR_32_H
