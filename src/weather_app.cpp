@@ -124,17 +124,25 @@ void WeatherApp::run() {
     // Initial update
     update();
     
+    // Timer for 10-minute weather updates
+    auto last_update = std::chrono::steady_clock::now();
+    constexpr auto UPDATE_INTERVAL = std::chrono::minutes(10);
+    
     // Main event loop
     while (!renderer_->should_quit()) {
         // Poll events (handles SDL events and quit requests)
         renderer_->poll_events();
         
+        // Check if it's time for weather update (every 10 minutes)
+        auto now = std::chrono::steady_clock::now();
+        if (now - last_update >= UPDATE_INTERVAL) {
+            std::cout << "Updating weather data (10-minute timer)..." << std::endl;
+            update();
+            last_update = now;
+        }
+        
         // Sleep for a short time to avoid busy waiting
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        
-        // Update weather data every minute (for now just once)
-        // In a real implementation, this would check timestamps
-        // For now, just keep the display updated
     }
     
     std::cout << "Exiting main loop" << std::endl;
