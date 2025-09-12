@@ -43,6 +43,12 @@ bool DisplayRenderer::initialize(bool use_sdl_emulator, inky_t* inky_display, bo
     use_inky_ = (inky_display != nullptr);
     inky_display_ = inky_display;
     
+    if (debug_enabled_) {
+        std::cout << "DisplayRenderer initialize: use_sdl_=" << use_sdl_ 
+                  << ", use_inky_=" << use_inky_ 
+                  << ", inky_display=" << (inky_display ? "valid" : "null") << std::endl;
+    }
+    
     // Initialize SDL emulator if requested
     if (use_sdl_) {
         sdl_emulator_ = std::make_unique<SDL3Emulator>();
@@ -404,8 +410,18 @@ void DisplayRenderer::present() {
         return;
     }
     
+    if (debug_enabled_) {
+        std::cout << "DisplayRenderer::present() - use_sdl_=" << use_sdl_ 
+                  << ", sdl_emulator_=" << (sdl_emulator_ ? "valid" : "null")
+                  << ", use_inky_=" << use_inky_
+                  << ", inky_display_=" << (inky_display_ ? "valid" : "null") << std::endl;
+    }
+    
     // Update SDL display
     if (use_sdl_ && sdl_emulator_) {
+        if (debug_enabled_) {
+            std::cout << "Calling SDL emulator update..." << std::endl;
+        }
         update_sdl_display();
     }
     
