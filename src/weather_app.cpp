@@ -185,39 +185,52 @@ void WeatherApp::render_weather(const WeatherData& data) {
     // Title area: full width, title font height (24pt font line_height = 24)
     constexpr int TITLE_HEIGHT = 24;
     renderer_->draw_text_centered(PANELS[1].x, PANELS[1].y, PANEL_WIDTH, TITLE_HEIGHT, "Currently", DisplayRenderer::BLACK);
-    // Value area: remaining space below title
-    renderer_->draw_text_centered(PANELS[1].x, PANELS[1].y + TITLE_HEIGHT, PANEL_WIDTH, PANEL_HEIGHT - TITLE_HEIGHT, temp_str, DisplayRenderer::BLACK);
+    // Value area: use height of 60 pixels to force 48pt font, centered in remaining space
+    constexpr int LARGE_VALUE_HEIGHT = 60;
+    int remaining_height = PANEL_HEIGHT - TITLE_HEIGHT;
+    int value_y = PANELS[1].y + TITLE_HEIGHT + (remaining_height - LARGE_VALUE_HEIGHT) / 2;
+    renderer_->draw_text_centered(PANELS[1].x, value_y, PANEL_WIDTH, LARGE_VALUE_HEIGHT, temp_str, DisplayRenderer::BLACK);
     
     // Panel 2: Min/Max temperature (double value panel)
     std::string max_str = "Hi " + std::to_string(data.temperature_max_f()) + "F";
     std::string min_str = "Lo " + std::to_string(data.temperature_min_f()) + "F";
     // Title area: full width, title font height
     renderer_->draw_text_centered(PANELS[2].x, PANELS[2].y, PANEL_WIDTH, TITLE_HEIGHT, "Forecast", DisplayRenderer::BLACK);
-    // Split remaining area in half
-    int remaining_height = PANEL_HEIGHT - TITLE_HEIGHT;
-    renderer_->draw_text_centered(PANELS[2].x, PANELS[2].y + TITLE_HEIGHT, PANEL_WIDTH, remaining_height/2, max_str, DisplayRenderer::BLACK);
-    renderer_->draw_text_centered(PANELS[2].x, PANELS[2].y + TITLE_HEIGHT + remaining_height/2, PANEL_WIDTH, remaining_height/2, min_str, DisplayRenderer::BLACK);
+    // Use 45px height for each value to force 32pt font, with smaller gaps
+    constexpr int MEDIUM_VALUE_HEIGHT = 45;
+    constexpr int VALUE_GAP = 10;  // Small gap between values
+    remaining_height = PANEL_HEIGHT - TITLE_HEIGHT;
+    int total_values_height = MEDIUM_VALUE_HEIGHT * 2 + VALUE_GAP;
+    int values_start_y = PANELS[2].y + TITLE_HEIGHT + (remaining_height - total_values_height) / 2;
+    renderer_->draw_text_centered(PANELS[2].x, values_start_y, PANEL_WIDTH, MEDIUM_VALUE_HEIGHT, max_str, DisplayRenderer::BLACK);
+    renderer_->draw_text_centered(PANELS[2].x, values_start_y + MEDIUM_VALUE_HEIGHT + VALUE_GAP, PANEL_WIDTH, MEDIUM_VALUE_HEIGHT, min_str, DisplayRenderer::BLACK);
     
     // Panel 3: Precipitation chance (single value panel)
     std::string precip_str = std::to_string(data.precipitation_chance_percent) + "%";
     renderer_->draw_text_centered(PANELS[3].x, PANELS[3].y, PANEL_WIDTH, TITLE_HEIGHT, "Precip Chance", DisplayRenderer::BLACK);
-    renderer_->draw_text_centered(PANELS[3].x, PANELS[3].y + TITLE_HEIGHT, PANEL_WIDTH, PANEL_HEIGHT - TITLE_HEIGHT, precip_str, DisplayRenderer::BLACK);
+    remaining_height = PANEL_HEIGHT - TITLE_HEIGHT;
+    value_y = PANELS[3].y + TITLE_HEIGHT + (remaining_height - LARGE_VALUE_HEIGHT) / 2;
+    renderer_->draw_text_centered(PANELS[3].x, value_y, PANEL_WIDTH, LARGE_VALUE_HEIGHT, precip_str, DisplayRenderer::BLACK);
     
     // Panel 4: Wind (double value panel)
     std::string wind_speed_str = std::to_string(data.wind_speed_mph()) + " mph";
     std::string wind_dir_str = std::to_string(data.wind_direction_deg) + "°";
     renderer_->draw_text_centered(PANELS[4].x, PANELS[4].y, PANEL_WIDTH, TITLE_HEIGHT, "Wind", DisplayRenderer::BLACK);
     remaining_height = PANEL_HEIGHT - TITLE_HEIGHT;
-    renderer_->draw_text_centered(PANELS[4].x, PANELS[4].y + TITLE_HEIGHT, PANEL_WIDTH, remaining_height/2, wind_speed_str, DisplayRenderer::BLACK);
-    renderer_->draw_text_centered(PANELS[4].x, PANELS[4].y + TITLE_HEIGHT + remaining_height/2, PANEL_WIDTH, remaining_height/2, wind_dir_str, DisplayRenderer::BLACK);
+    total_values_height = MEDIUM_VALUE_HEIGHT * 2 + VALUE_GAP;
+    values_start_y = PANELS[4].y + TITLE_HEIGHT + (remaining_height - total_values_height) / 2;
+    renderer_->draw_text_centered(PANELS[4].x, values_start_y, PANEL_WIDTH, MEDIUM_VALUE_HEIGHT, wind_speed_str, DisplayRenderer::BLACK);
+    renderer_->draw_text_centered(PANELS[4].x, values_start_y + MEDIUM_VALUE_HEIGHT + VALUE_GAP, PANEL_WIDTH, MEDIUM_VALUE_HEIGHT, wind_dir_str, DisplayRenderer::BLACK);
     
     // Panel 5: Humidity/Dew (double value panel)
     std::string humidity_str = std::to_string(data.humidity_percent) + "%";
     std::string dew_str = std::to_string(data.dewpoint_f()) + "F";
     renderer_->draw_text_centered(PANELS[5].x, PANELS[5].y, PANEL_WIDTH, TITLE_HEIGHT, "Humidity/Dew", DisplayRenderer::BLACK);
     remaining_height = PANEL_HEIGHT - TITLE_HEIGHT;
-    renderer_->draw_text_centered(PANELS[5].x, PANELS[5].y + TITLE_HEIGHT, PANEL_WIDTH, remaining_height/2, humidity_str, DisplayRenderer::BLACK);
-    renderer_->draw_text_centered(PANELS[5].x, PANELS[5].y + TITLE_HEIGHT + remaining_height/2, PANEL_WIDTH, remaining_height/2, dew_str, DisplayRenderer::BLACK);
+    total_values_height = MEDIUM_VALUE_HEIGHT * 2 + VALUE_GAP;
+    values_start_y = PANELS[5].y + TITLE_HEIGHT + (remaining_height - total_values_height) / 2;
+    renderer_->draw_text_centered(PANELS[5].x, values_start_y, PANEL_WIDTH, MEDIUM_VALUE_HEIGHT, humidity_str, DisplayRenderer::BLACK);
+    renderer_->draw_text_centered(PANELS[5].x, values_start_y + MEDIUM_VALUE_HEIGHT + VALUE_GAP, PANEL_WIDTH, MEDIUM_VALUE_HEIGHT, dew_str, DisplayRenderer::BLACK);
     
     // Add timestamp at bottom
     auto now = std::time(nullptr);
