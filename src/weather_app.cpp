@@ -209,53 +209,80 @@ void WeatherApp::render_weather(const WeatherData& data) {
     
     // Panel 1: Current temperature (single value panel)
     std::string temp_str = std::to_string(data.temperature_f()) + "F";
-    // Title area: full width, title font height (24pt font line_height = 24)
-    constexpr int TITLE_HEIGHT = 24;
-    renderer_->draw_text_centered(PANELS[1].x, PANELS[1].y, PANEL_WIDTH, TITLE_HEIGHT, "Currently", DisplayRenderer::BLACK);
-    // Value area: use height of 60 pixels to force 48pt font, centered in remaining space
-    constexpr int LARGE_VALUE_HEIGHT = 60;
-    int remaining_height = PANEL_HEIGHT - TITLE_HEIGHT;
-    int value_y = PANELS[1].y + TITLE_HEIGHT + (remaining_height - LARGE_VALUE_HEIGHT) / 2;
+    // Layout constants for consistent title positioning and separator lines
+    constexpr int TITLE_HEIGHT = 40;
+    constexpr int SEPARATOR_LINE_Y = 55;  // Line position from panel top
+    constexpr int LINE_THICKNESS = 1;
+    constexpr int LINE_MARGIN = 10;       // Margin from panel edges
+    // Title centered between panel top and separator line
+    int title_center_y = SEPARATOR_LINE_Y / 2;
+    int title_y = PANELS[1].y + title_center_y - TITLE_HEIGHT / 2;
+    renderer_->draw_text_centered(PANELS[1].x, title_y, PANEL_WIDTH, TITLE_HEIGHT, "Currently", DisplayRenderer::BLACK);
+    // Draw separator line below title
+    renderer_->draw_rectangle(PANELS[1].x + LINE_MARGIN, PANELS[1].y + SEPARATOR_LINE_Y, 
+                             PANEL_WIDTH - 2 * LINE_MARGIN, LINE_THICKNESS, DisplayRenderer::BLACK);
+    // Value area: center the value text in the space between separator line and panel bottom
+    constexpr int LARGE_VALUE_HEIGHT = 60;  // Keep 60 to ensure 48pt font selection (h >= 60)
+    int remaining_height = PANEL_HEIGHT - SEPARATOR_LINE_Y;
+    int available_center = remaining_height / 2;
+    int value_y = PANELS[1].y + SEPARATOR_LINE_Y + available_center - LARGE_VALUE_HEIGHT / 2;
     renderer_->draw_text_centered(PANELS[1].x, value_y, PANEL_WIDTH, LARGE_VALUE_HEIGHT, temp_str, DisplayRenderer::BLACK);
     
     // Panel 2: Min/Max temperature (double value panel)
     std::string max_str = "Hi " + std::to_string(data.temperature_max_f()) + "F";
     std::string min_str = "Lo " + std::to_string(data.temperature_min_f()) + "F";
-    // Title area: full width, title font height
-    renderer_->draw_text_centered(PANELS[2].x, PANELS[2].y, PANEL_WIDTH, TITLE_HEIGHT, "Forecast", DisplayRenderer::BLACK);
+    // Title centered between panel top and separator line
+    title_y = PANELS[2].y + title_center_y - TITLE_HEIGHT / 2;
+    renderer_->draw_text_centered(PANELS[2].x, title_y, PANEL_WIDTH, TITLE_HEIGHT, "Forecast", DisplayRenderer::BLACK);
+    // Draw separator line below title
+    renderer_->draw_rectangle(PANELS[2].x + LINE_MARGIN, PANELS[2].y + SEPARATOR_LINE_Y, 
+                             PANEL_WIDTH - 2 * LINE_MARGIN, LINE_THICKNESS, DisplayRenderer::BLACK);
     // Use 45px height for each value to force 32pt font, with smaller gaps
     constexpr int MEDIUM_VALUE_HEIGHT = 45;
-    constexpr int VALUE_GAP = 10;  // Small gap between values
-    remaining_height = PANEL_HEIGHT - TITLE_HEIGHT;
+    constexpr int VALUE_GAP = 5;   // Reduced gap between values (50% of original 10px)
+    remaining_height = PANEL_HEIGHT - SEPARATOR_LINE_Y;
     int total_values_height = MEDIUM_VALUE_HEIGHT * 2 + VALUE_GAP;
-    int values_start_y = PANELS[2].y + TITLE_HEIGHT + (remaining_height - total_values_height) / 2;
+    int values_start_y = PANELS[2].y + SEPARATOR_LINE_Y + (remaining_height - total_values_height) / 2;
     renderer_->draw_text_centered(PANELS[2].x, values_start_y, PANEL_WIDTH, MEDIUM_VALUE_HEIGHT, max_str, DisplayRenderer::BLACK);
     renderer_->draw_text_centered(PANELS[2].x, values_start_y + MEDIUM_VALUE_HEIGHT + VALUE_GAP, PANEL_WIDTH, MEDIUM_VALUE_HEIGHT, min_str, DisplayRenderer::BLACK);
     
     // Panel 3: Precipitation chance (single value panel)
     std::string precip_str = std::to_string(data.precipitation_chance_percent) + "%";
-    renderer_->draw_text_centered(PANELS[3].x, PANELS[3].y, PANEL_WIDTH, TITLE_HEIGHT, "Precip Chance", DisplayRenderer::BLACK);
-    remaining_height = PANEL_HEIGHT - TITLE_HEIGHT;
-    value_y = PANELS[3].y + TITLE_HEIGHT + (remaining_height - LARGE_VALUE_HEIGHT) / 2;
+    title_y = PANELS[3].y + title_center_y - TITLE_HEIGHT / 2;
+    renderer_->draw_text_centered(PANELS[3].x, title_y, PANEL_WIDTH, TITLE_HEIGHT, "Precip Chance", DisplayRenderer::BLACK);
+    // Draw separator line below title
+    renderer_->draw_rectangle(PANELS[3].x + LINE_MARGIN, PANELS[3].y + SEPARATOR_LINE_Y, 
+                             PANEL_WIDTH - 2 * LINE_MARGIN, LINE_THICKNESS, DisplayRenderer::BLACK);
+    remaining_height = PANEL_HEIGHT - SEPARATOR_LINE_Y;
+    available_center = remaining_height / 2;
+    value_y = PANELS[3].y + SEPARATOR_LINE_Y + available_center - LARGE_VALUE_HEIGHT / 2;
     renderer_->draw_text_centered(PANELS[3].x, value_y, PANEL_WIDTH, LARGE_VALUE_HEIGHT, precip_str, DisplayRenderer::BLACK);
     
     // Panel 4: Wind (double value panel)
     std::string wind_speed_str = std::to_string(data.wind_speed_mph()) + " mph";
     std::string wind_dir_str = std::to_string(data.wind_direction_deg) + "°";
-    renderer_->draw_text_centered(PANELS[4].x, PANELS[4].y, PANEL_WIDTH, TITLE_HEIGHT, "Wind", DisplayRenderer::BLACK);
-    remaining_height = PANEL_HEIGHT - TITLE_HEIGHT;
+    title_y = PANELS[4].y + title_center_y - TITLE_HEIGHT / 2;
+    renderer_->draw_text_centered(PANELS[4].x, title_y, PANEL_WIDTH, TITLE_HEIGHT, "Wind", DisplayRenderer::BLACK);
+    // Draw separator line below title
+    renderer_->draw_rectangle(PANELS[4].x + LINE_MARGIN, PANELS[4].y + SEPARATOR_LINE_Y, 
+                             PANEL_WIDTH - 2 * LINE_MARGIN, LINE_THICKNESS, DisplayRenderer::BLACK);
+    remaining_height = PANEL_HEIGHT - SEPARATOR_LINE_Y;
     total_values_height = MEDIUM_VALUE_HEIGHT * 2 + VALUE_GAP;
-    values_start_y = PANELS[4].y + TITLE_HEIGHT + (remaining_height - total_values_height) / 2;
+    values_start_y = PANELS[4].y + SEPARATOR_LINE_Y + (remaining_height - total_values_height) / 2;
     renderer_->draw_text_centered(PANELS[4].x, values_start_y, PANEL_WIDTH, MEDIUM_VALUE_HEIGHT, wind_speed_str, DisplayRenderer::BLACK);
     renderer_->draw_text_centered(PANELS[4].x, values_start_y + MEDIUM_VALUE_HEIGHT + VALUE_GAP, PANEL_WIDTH, MEDIUM_VALUE_HEIGHT, wind_dir_str, DisplayRenderer::BLACK);
     
     // Panel 5: Humidity/Dew (double value panel)
     std::string humidity_str = std::to_string(data.humidity_percent) + "%";
     std::string dew_str = std::to_string(data.dewpoint_f()) + "F";
-    renderer_->draw_text_centered(PANELS[5].x, PANELS[5].y, PANEL_WIDTH, TITLE_HEIGHT, "Humidity/Dew", DisplayRenderer::BLACK);
-    remaining_height = PANEL_HEIGHT - TITLE_HEIGHT;
+    title_y = PANELS[5].y + title_center_y - TITLE_HEIGHT / 2;
+    renderer_->draw_text_centered(PANELS[5].x, title_y, PANEL_WIDTH, TITLE_HEIGHT, "Humidity/Dew", DisplayRenderer::BLACK);
+    // Draw separator line below title
+    renderer_->draw_rectangle(PANELS[5].x + LINE_MARGIN, PANELS[5].y + SEPARATOR_LINE_Y, 
+                             PANEL_WIDTH - 2 * LINE_MARGIN, LINE_THICKNESS, DisplayRenderer::BLACK);
+    remaining_height = PANEL_HEIGHT - SEPARATOR_LINE_Y;
     total_values_height = MEDIUM_VALUE_HEIGHT * 2 + VALUE_GAP;
-    values_start_y = PANELS[5].y + TITLE_HEIGHT + (remaining_height - total_values_height) / 2;
+    values_start_y = PANELS[5].y + SEPARATOR_LINE_Y + (remaining_height - total_values_height) / 2;
     renderer_->draw_text_centered(PANELS[5].x, values_start_y, PANEL_WIDTH, MEDIUM_VALUE_HEIGHT, humidity_str, DisplayRenderer::BLACK);
     renderer_->draw_text_centered(PANELS[5].x, values_start_y + MEDIUM_VALUE_HEIGHT + VALUE_GAP, PANEL_WIDTH, MEDIUM_VALUE_HEIGHT, dew_str, DisplayRenderer::BLACK);
     
