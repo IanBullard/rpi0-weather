@@ -71,6 +71,17 @@ bool WeatherApp::initialize(const std::string& config_file) {
         weather_service_->setLocation(config_.latitude, config_.longitude);
     }
     
+    // Initialize Inky display if not using SDL emulator
+    if (!use_sdl_emulator_) {
+        std::cout << "Initializing hardware display..." << std::endl;
+        inky_display_ = inky_init(false);  // false = hardware mode
+        if (!inky_display_) {
+            std::cerr << "Failed to initialize hardware display" << std::endl;
+            return false;
+        }
+        std::cout << "Hardware display initialized successfully" << std::endl;
+    }
+    
     // Initialize unified renderer
     if (!renderer_->initialize(use_sdl_emulator_, inky_display_)) {
         std::cerr << "Failed to initialize display renderer" << std::endl;
@@ -177,6 +188,12 @@ void WeatherApp::shutdown() {
     
     if (renderer_) {
         renderer_->shutdown();
+    }
+    
+    // Clean up hardware display
+    if (inky_display_) {
+        inky_destroy(inky_display_);
+        inky_display_ = nullptr;
     }
     
     initialized_ = false;

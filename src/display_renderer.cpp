@@ -405,7 +405,11 @@ void DisplayRenderer::present() {
     
     // Update Inky display
     if (use_inky_ && inky_display_) {
+        std::cout << "Updating hardware display..." << std::endl;
         update_inky_display();
+        std::cout << "Hardware display update completed" << std::endl;
+    } else if (!use_sdl_) {
+        std::cout << "WARNING: No display target available (use_inky_=" << use_inky_ << ", inky_display_=" << (inky_display_ ? "valid" : "null") << ")" << std::endl;
     }
 }
 
@@ -473,6 +477,8 @@ void DisplayRenderer::update_sdl_display() {
 }
 
 void DisplayRenderer::update_inky_display() {
+    std::cout << "Copying " << (SCREEN_WIDTH * SCREEN_HEIGHT) << " pixels to hardware display..." << std::endl;
+    
     // Copy backbuffer to Inky display
     for (int y = 0; y < SCREEN_HEIGHT; y++) {
         for (int x = 0; x < SCREEN_WIDTH; x++) {
@@ -480,5 +486,8 @@ void DisplayRenderer::update_inky_display() {
             inky_set_pixel(inky_display_, x, y, color);
         }
     }
+    
+    std::cout << "Calling inky_update() to refresh hardware display..." << std::endl;
     inky_update(inky_display_);
+    std::cout << "inky_update() completed" << std::endl;
 }
