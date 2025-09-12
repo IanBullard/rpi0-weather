@@ -108,8 +108,7 @@ bool WeatherApp::initialize(const std::string& config_file, bool debug) {
     
     // Set timezone environment variable for correct local time display
     if (!config_.timezone.empty()) {
-        std::string tz_env = "TZ=" + config_.timezone;
-        if (putenv(const_cast<char*>(tz_env.c_str())) == 0) {
+        if (setenv("TZ", config_.timezone.c_str(), 1) == 0) {
             tzset();  // Update timezone info
             if (debug_enabled_) {
                 std::cout << "Timezone set to: " << config_.timezone << std::endl;
