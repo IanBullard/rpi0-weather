@@ -12,6 +12,8 @@ This is a complete rewrite of the original Python-based weather station in clean
 - **Unified Codebase**: Single C++ implementation for both emulator and hardware
 - **6-Panel Layout**: Weather icon, current temp, forecast, precipitation, wind, humidity
 - **Cross-Platform**: Builds on Linux/macOS for development, ARM for Raspberry Pi
+- **Auto-Updates**: Weather refreshes every 10 minutes automatically
+- **Manual Updates**: Press any hardware button (A, B, C, D) for instant weather refresh
 
 ## Building
 

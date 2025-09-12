@@ -14,6 +14,16 @@ extern "C" {
 #include <ctime>
 #include <iomanip>
 #include <sstream>
+
+// Static WeatherApp instance for button callback
+static WeatherApp* g_weather_app_instance = nullptr;
+
+// Static callback function for button presses
+static void button_callback(int button, void* user_data) {
+    if (g_weather_app_instance) {
+        g_weather_app_instance->on_button_pressed(button);
+    }
+}
 #include <algorithm>
 
 // Declare the mock data function
@@ -67,10 +77,15 @@ bool WeatherApp::initialize(const std::string& config_file) {
         return false;
     }
     
-    // Set button callback for SDL emulator if enabled
-    if (use_sdl_emulator_) {
-        // Note: Button handling would need to be added to DisplayRenderer
-        // For now, just note that it's available
+    // Initialize button support
+    g_weather_app_instance = this;
+    
+    // Initialize hardware buttons (works on Pi, no-op on emulator)
+    if (inky_button_init() == 0) {
+        std::cout << "Hardware buttons initialized" << std::endl;
+        inky_button_set_callback(button_callback, nullptr);
+    } else {
+        std::cout << "Hardware buttons not available (running on emulator or buttons not connected)" << std::endl;
     }
     
     initialized_ = true;
@@ -124,8 +139,8 @@ void WeatherApp::run() {
     // Initial update
     update();
     
-    // Timer for 10-minute weather updates
-    auto last_update = std::chrono::steady_clock::now();
+    // Timer for 10-minute weather updates (shared with button handler)
+    last_update_ = std::chrono::steady_clock::now();
     constexpr auto UPDATE_INTERVAL = std::chrono::minutes(10);
     
     // Main event loop
@@ -133,12 +148,15 @@ void WeatherApp::run() {
         // Poll events (handles SDL events and quit requests)
         renderer_->poll_events();
         
+        // Poll hardware buttons
+        inky_button_poll();
+        
         // Check if it's time for weather update (every 10 minutes)
         auto now = std::chrono::steady_clock::now();
-        if (now - last_update >= UPDATE_INTERVAL) {
+        if (now - last_update_ >= UPDATE_INTERVAL) {
             std::cout << "Updating weather data (10-minute timer)..." << std::endl;
             update();
-            last_update = now;
+            last_update_ = now;
         }
         
         // Sleep for a short time to avoid busy waiting
@@ -152,6 +170,10 @@ void WeatherApp::shutdown() {
     if (!initialized_) {
         return;
     }
+    
+    // Clean up button resources
+    inky_button_cleanup();
+    g_weather_app_instance = nullptr;
     
     if (renderer_) {
         renderer_->shutdown();
@@ -440,4 +462,13 @@ bool WeatherApp::renderAllIconsTest(const std::string& output_file) {
     // Save as PNG using stb_image_write
     int result = stbi_write_png(output_file.c_str(), grid_width, grid_height, 3, rgb_buffer.data(), grid_width * 3);
     return result != 0;
+}
+
+void WeatherApp::on_button_pressed(int button) {
+    // Any button press triggers a weather update
+    std::cout << "Button " << char('A' + button) << " pressed - updating weather..." << std::endl;
+    update();
+    
+    // Reset the timer to prevent immediate automatic update
+    last_update_ = std::chrono::steady_clock::now();
 }

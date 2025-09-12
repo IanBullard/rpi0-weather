@@ -5,6 +5,7 @@
 #include "display_renderer.h"
 #include "config.h"
 #include <memory>
+#include <chrono>
 
 // Forward declarations
 typedef struct inky_display inky_t;
@@ -41,6 +42,9 @@ public:
     
     // Get current configuration
     const Config& getConfig() const { return config_; }
+    
+    // Button handling
+    void on_button_pressed(int button);
     
 private:
     // Simplified unified rendering function
@@ -92,6 +96,6 @@ private:
     
     bool initialized_;
     
-    // Button handling
-    void on_button_pressed(int button);
+    // Timer for weather updates
+    std::chrono::steady_clock::time_point last_update_;
 };

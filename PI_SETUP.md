@@ -143,7 +143,15 @@ The weather station will:
 1. Start automatically on boot
 2. Display current weather immediately
 3. Update weather data every 10 minutes
-4. Restart automatically if the service crashes
+4. Allow manual weather updates via any of the 4 hardware buttons (A, B, C, D)
+5. Restart automatically if the service crashes
+
+### Button Controls
+
+The Inky Impression display has 4 hardware buttons that can be used to interact with the weather station:
+- **Button A, B, C, or D**: Pressing any button will immediately trigger a weather update
+- The 10-minute timer resets after a manual update to prevent duplicate updates
+- Button presses are logged to the system journal for monitoring
 
 ## Troubleshooting
 
