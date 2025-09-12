@@ -120,6 +120,10 @@ void WeatherApp::update() {
         return;
     }
     
+    if (debug_enabled_) {
+        std::cout << "WeatherApp::update() called" << std::endl;
+    }
+    
     // Get weather data
     WeatherData data;
     if (use_real_api_ && weather_service_) {
@@ -142,10 +146,20 @@ void WeatherApp::update() {
     }
     
     // Render weather data to unified backbuffer
+    if (debug_enabled_) {
+        std::cout << "Calling render_weather()..." << std::endl;
+    }
     render_weather(data);
     
     // Present to all target devices
+    if (debug_enabled_) {
+        std::cout << "Calling renderer_->present()..." << std::endl;
+    }
     renderer_->present();
+    
+    if (debug_enabled_) {
+        std::cout << "WeatherApp::update() completed" << std::endl;
+    }
     
     std::cout << "Display updated with weather data" << std::endl;
 }
