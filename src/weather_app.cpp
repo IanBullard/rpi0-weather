@@ -75,17 +75,49 @@ bool WeatherApp::initialize(const std::string& config_file, bool debug) {
     }
     
     // Initialize Inky display if not using SDL emulator
+    if (debug_enabled_) {
+        std::cout << "Hardware display check: use_sdl_emulator_=" << use_sdl_emulator_ << std::endl;
+    }
+    
     if (!use_sdl_emulator_) {
         if (debug_enabled_) {
             std::cout << "Initializing hardware display..." << std::endl;
+            std::cout << "Checking hardware prerequisites..." << std::endl;
+            
+            // Check SPI device
+            FILE* spi_check = fopen("/dev/spidev0.0", "r");
+            if (spi_check) {
+                std::cout << "✓ SPI device /dev/spidev0.0 accessible" << std::endl;
+                fclose(spi_check);
+            } else {
+                std::cout << "✗ SPI device /dev/spidev0.0 not accessible" << std::endl;
+            }
+            
+            // Check GPIO device
+            FILE* gpio_check = fopen("/dev/gpiochip0", "r");
+            if (gpio_check) {
+                std::cout << "✓ GPIO device /dev/gpiochip0 accessible" << std::endl;
+                fclose(gpio_check);
+            } else {
+                std::cout << "✗ GPIO device /dev/gpiochip0 not accessible" << std::endl;
+            }
         }
+        
         inky_display_ = inky_init(false);  // false = hardware mode
         if (!inky_display_) {
             std::cerr << "Failed to initialize hardware display" << std::endl;
+            if (debug_enabled_) {
+                std::cerr << "Hardware initialization failed - check SPI/GPIO permissions and hardware connections" << std::endl;
+                std::cerr << "Try running with 'sudo' or check that user is in 'gpio' and 'spi' groups" << std::endl;
+            }
             return false;
         }
         if (debug_enabled_) {
-            std::cout << "Hardware display initialized successfully" << std::endl;
+            std::cout << "Hardware display initialized successfully, inky_display_=" << inky_display_ << std::endl;
+        }
+    } else {
+        if (debug_enabled_) {
+            std::cout << "Skipping hardware display initialization (using SDL emulator)" << std::endl;
         }
     }
     

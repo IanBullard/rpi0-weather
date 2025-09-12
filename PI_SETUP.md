@@ -44,6 +44,7 @@ sudo apt upgrade -y
 ```bash
 sudo raspi-config
 # Navigate to: Interface Options > SPI > Enable
+# Navigate to: Interface Options > I2C > Enable
 ```
 
 5. Reboot: `sudo reboot`
