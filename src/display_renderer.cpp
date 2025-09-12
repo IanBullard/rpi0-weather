@@ -25,6 +25,7 @@ DisplayRenderer::DisplayRenderer()
     , use_sdl_(false)
     , use_inky_(false)
     , initialized_(false)
+    , debug_enabled_(false)
 {
 }
 
@@ -32,11 +33,12 @@ DisplayRenderer::~DisplayRenderer() {
     shutdown();
 }
 
-bool DisplayRenderer::initialize(bool use_sdl_emulator, inky_t* inky_display) {
+bool DisplayRenderer::initialize(bool use_sdl_emulator, inky_t* inky_display, bool debug) {
     if (initialized_) {
         return true;
     }
     
+    debug_enabled_ = debug;
     use_sdl_ = use_sdl_emulator;
     use_inky_ = (inky_display != nullptr);
     inky_display_ = inky_display;
@@ -48,13 +50,17 @@ bool DisplayRenderer::initialize(bool use_sdl_emulator, inky_t* inky_display) {
             std::cerr << "Failed to initialize SDL3 emulator" << std::endl;
             return false;
         }
-        std::cout << "SDL3 emulator initialized successfully" << std::endl;
+        if (debug_enabled_) {
+            std::cout << "SDL3 emulator initialized successfully" << std::endl;
+        }
     }
     
     // Initialize Inky display if provided
     if (use_inky_ && inky_display_) {
         // Inky display should already be initialized by caller
-        std::cout << "Using Inky display" << std::endl;
+        if (debug_enabled_) {
+            std::cout << "Using Inky display" << std::endl;
+        }
     }
     
     // Clear backbuffer to white
@@ -405,10 +411,14 @@ void DisplayRenderer::present() {
     
     // Update Inky display
     if (use_inky_ && inky_display_) {
-        std::cout << "Updating hardware display..." << std::endl;
+        if (debug_enabled_) {
+            std::cout << "Updating hardware display..." << std::endl;
+        }
         update_inky_display();
-        std::cout << "Hardware display update completed" << std::endl;
-    } else if (!use_sdl_) {
+        if (debug_enabled_) {
+            std::cout << "Hardware display update completed" << std::endl;
+        }
+    } else if (!use_sdl_ && debug_enabled_) {
         std::cout << "WARNING: No display target available (use_inky_=" << use_inky_ << ", inky_display_=" << (inky_display_ ? "valid" : "null") << ")" << std::endl;
     }
 }
@@ -477,7 +487,9 @@ void DisplayRenderer::update_sdl_display() {
 }
 
 void DisplayRenderer::update_inky_display() {
-    std::cout << "Copying " << (SCREEN_WIDTH * SCREEN_HEIGHT) << " pixels to hardware display..." << std::endl;
+    if (debug_enabled_) {
+        std::cout << "Copying " << (SCREEN_WIDTH * SCREEN_HEIGHT) << " pixels to hardware display..." << std::endl;
+    }
     
     // Copy backbuffer to Inky display
     for (int y = 0; y < SCREEN_HEIGHT; y++) {
@@ -487,7 +499,11 @@ void DisplayRenderer::update_inky_display() {
         }
     }
     
-    std::cout << "Calling inky_update() to refresh hardware display..." << std::endl;
+    if (debug_enabled_) {
+        std::cout << "Calling inky_update() to refresh hardware display..." << std::endl;
+    }
     inky_update(inky_display_);
-    std::cout << "inky_update() completed" << std::endl;
+    if (debug_enabled_) {
+        std::cout << "inky_update() completed" << std::endl;
+    }
 }

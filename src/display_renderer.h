@@ -32,8 +32,8 @@ public:
     DisplayRenderer();
     ~DisplayRenderer();
     
-    // Initialize with target devices
-    bool initialize(bool use_sdl_emulator = true, inky_t* inky_display = nullptr);
+    // Initialize with target devices and debug flag
+    bool initialize(bool use_sdl_emulator = true, inky_t* inky_display = nullptr, bool debug = false);
     void shutdown();
     
     // Common backbuffer operations
@@ -65,6 +65,7 @@ private:
     bool use_sdl_;
     bool use_inky_;
     bool initialized_;
+    bool debug_enabled_;
     
     // Helper methods
     bool is_valid_pixel(int x, int y) const;

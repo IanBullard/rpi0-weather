@@ -34,7 +34,8 @@ WeatherApp::WeatherApp()
     , inky_display_(nullptr)
     , use_sdl_emulator_(true)
     , use_real_api_(false)
-    , initialized_(false) 
+    , initialized_(false)
+    , debug_enabled_(false) 
 {
     weather_service_ = std::make_unique<WeatherService>();
     renderer_ = std::make_unique<DisplayRenderer>();
@@ -44,10 +45,12 @@ WeatherApp::~WeatherApp() {
     shutdown();
 }
 
-bool WeatherApp::initialize(const std::string& config_file) {
+bool WeatherApp::initialize(const std::string& config_file, bool debug) {
     if (initialized_) {
         return true;
     }
+    
+    debug_enabled_ = debug;
     
     // Load configuration
     if (!config_.load_from_file(config_file)) {
@@ -73,17 +76,21 @@ bool WeatherApp::initialize(const std::string& config_file) {
     
     // Initialize Inky display if not using SDL emulator
     if (!use_sdl_emulator_) {
-        std::cout << "Initializing hardware display..." << std::endl;
+        if (debug_enabled_) {
+            std::cout << "Initializing hardware display..." << std::endl;
+        }
         inky_display_ = inky_init(false);  // false = hardware mode
         if (!inky_display_) {
             std::cerr << "Failed to initialize hardware display" << std::endl;
             return false;
         }
-        std::cout << "Hardware display initialized successfully" << std::endl;
+        if (debug_enabled_) {
+            std::cout << "Hardware display initialized successfully" << std::endl;
+        }
     }
     
     // Initialize unified renderer
-    if (!renderer_->initialize(use_sdl_emulator_, inky_display_)) {
+    if (!renderer_->initialize(use_sdl_emulator_, inky_display_, debug_enabled_)) {
         std::cerr << "Failed to initialize display renderer" << std::endl;
         return false;
     }
@@ -93,10 +100,14 @@ bool WeatherApp::initialize(const std::string& config_file) {
     
     // Initialize hardware buttons (works on Pi, no-op on emulator)
     if (inky_button_init() == 0) {
-        std::cout << "Hardware buttons initialized" << std::endl;
+        if (debug_enabled_) {
+            std::cout << "Hardware buttons initialized" << std::endl;
+        }
         inky_button_set_callback(button_callback, nullptr);
     } else {
-        std::cout << "Hardware buttons not available (running on emulator or buttons not connected)" << std::endl;
+        if (debug_enabled_) {
+            std::cout << "Hardware buttons not available (running on emulator or buttons not connected)" << std::endl;
+        }
     }
     
     initialized_ = true;

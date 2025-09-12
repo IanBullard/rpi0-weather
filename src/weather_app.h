@@ -19,8 +19,8 @@ public:
     WeatherApp();
     ~WeatherApp();
     
-    // Initialize the display with optional config file
-    bool initialize(const std::string& config_file = "config.json");
+    // Initialize the display with optional config file and debug flag
+    bool initialize(const std::string& config_file = "config.json", bool debug = false);
     
     // Update weather data and refresh display
     void update();
@@ -95,6 +95,7 @@ private:
     Config config_;
     
     bool initialized_;
+    bool debug_enabled_;
     
     // Timer for weather updates
     std::chrono::steady_clock::time_point last_update_;

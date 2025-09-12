@@ -10,12 +10,14 @@ void print_usage(const char* prog_name) {
     std::cout << "  --test <output.png>       Render one frame and save as PNG\n";
     std::cout << "  --test-icons <output.png> Render all weather icons in grid and save as PNG\n";
     std::cout << "  --config <file>           Use specified config file (default: config.json)\n";
+    std::cout << "  --debug                   Enable verbose debug output\n";
     std::cout << "  --help                    Show this help message\n";
 }
 
 int main(int argc, char* argv[]) {
     bool test_mode = false;
     bool test_icons_mode = false;
+    bool debug_mode = false;
     std::string output_file;
     std::string config_file = "config.json";
     
@@ -30,6 +32,8 @@ int main(int argc, char* argv[]) {
             output_file = argv[++i];
         } else if (arg == "--config" && i + 1 < argc) {
             config_file = argv[++i];
+        } else if (arg == "--debug") {
+            debug_mode = true;
         } else if (arg == "--help") {
             print_usage(argv[0]);
             return 0;
@@ -42,9 +46,9 @@ int main(int argc, char* argv[]) {
     
     std::cout << "Starting rpi0-weather application..." << std::endl;
     
-    // Create and initialize weather app with config file
+    // Create and initialize weather app with config file and debug flag
     WeatherApp app;
-    if (!app.initialize(config_file)) {
+    if (!app.initialize(config_file, debug_mode)) {
         std::cerr << "Failed to initialize weather app" << std::endl;
         return 1;
     }
