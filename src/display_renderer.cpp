@@ -226,9 +226,11 @@ void DisplayRenderer::draw_text_centered(int x, int y, int w, int h, const std::
         }
     }
     
-    // Center the text
+    // Center the text vertically in the available space
     int start_x = x + (w - text_width) / 2;
-    int start_y = y + (h - line_height) / 2 + baseline;
+    // Center based on actual font height, accounting for ascent/descent
+    // Move the baseline up by approximately half the font size for better visual centering
+    int start_y = y + h / 2 - font_size / 4;
     
     int cur_x = start_x;
     
