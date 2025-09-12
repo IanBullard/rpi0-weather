@@ -29,9 +29,31 @@ WeatherApp::~WeatherApp() {
     shutdown();
 }
 
-bool WeatherApp::initialize() {
+bool WeatherApp::initialize(const std::string& config_file) {
     if (initialized_) {
         return true;
+    }
+    
+    // Load configuration
+    if (!config_.load_from_file(config_file)) {
+        std::cout << "Config file not found, creating default: " << config_file << std::endl;
+        if (!Config::create_default_config(config_file)) {
+            std::cerr << "Failed to create default config file" << std::endl;
+            return false;
+        }
+        if (!config_.load_from_file(config_file)) {
+            std::cerr << "Failed to load default config file" << std::endl;
+            return false;
+        }
+    }
+    
+    // Apply configuration
+    use_sdl_emulator_ = config_.use_sdl_emulator;
+    use_real_api_ = config_.use_real_api;
+    
+    // Set location in weather service
+    if (weather_service_ && use_real_api_) {
+        weather_service_->setLocation(config_.latitude, config_.longitude);
     }
     
     // Initialize unified renderer
@@ -47,7 +69,7 @@ bool WeatherApp::initialize() {
     }
     
     initialized_ = true;
-    std::cout << "Weather app initialized successfully" << std::endl;
+    std::cout << "Weather app initialized successfully for " << config_.location_name << std::endl;
     return true;
 }
 

@@ -88,6 +88,7 @@ set(SOURCES
     src/weather_service.cpp
     src/bitmap_font.cpp
     src/font_renderer.cpp
+    src/config.cpp
 )
 
 # Create executable

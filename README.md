@@ -47,6 +47,7 @@ make
 - `rpi0-weather` - Main weather application with SDL3 emulator
 - `test_nws_api` - Standalone NWS API testing tool  
 - `font_converter` - Font preprocessing tool for TTF/OTF → bitmap atlas
+- `image_converter` - Weather icon preprocessing tool
 
 ## Project Structure
 
@@ -61,6 +62,7 @@ rpi0-weather/
 │   ├── weather_data.h/.cpp  # Weather data structures
 │   ├── nws_client.h/.cpp    # National Weather Service API client
 │   ├── weather_service.h/.cpp # High-level weather service
+│   ├── display_renderer.h/.cpp # Unified display renderer
 │   ├── sdl_emulator.h/.cpp  # SDL3 display emulator
 │   ├── bitmap_font.h/.cpp   # Font data structures
 │   ├── font_renderer.h/.cpp # Font rendering engine
@@ -78,19 +80,28 @@ rpi0-weather/
 ## Development Status
 
 - ✅ Project structure and build system
-- ✅ Inky_c display integration
+- ✅ Inky_c display integration  
 - ✅ SDL3 emulator with real-time preview
 - ✅ NWS API integration with live weather data
 - ✅ Font rendering system (stb_truetype preprocessing)
-- ⏳ Weather icon assets
-- ⏳ Integration of fonts into display
+- ✅ Weather icon assets and rendering
+- ✅ Unified display renderer with proper text centering
+- ✅ UTF-8 support for degree symbols and international characters
 - ⏳ Hardware testing on Raspberry Pi
+- ⏳ Configuration file system (currently hardcoded location)
 
 ## Hardware vs Emulator
 
 The inky_c library automatically handles hardware detection:
 - **Hardware**: Runs on Raspberry Pi with real Inky display
-- **Emulator**: Runs on desktop with SDL2 window simulation
+- **Emulator**: Runs on desktop with SDL3 window simulation
+
+### Command Line Options
+```bash
+./rpi0-weather [options]
+  --test <output.png>  Render one frame and save as PNG
+  --help               Show this help message
+```
 
 ## Features
 

@@ -3,6 +3,7 @@
 #include "weather_data.h"
 #include "weather_service.h"
 #include "display_renderer.h"
+#include "config.h"
 #include <memory>
 
 // Forward declarations
@@ -17,8 +18,8 @@ public:
     WeatherApp();
     ~WeatherApp();
     
-    // Initialize the display
-    bool initialize();
+    // Initialize the display with optional config file
+    bool initialize(const std::string& config_file = "config.json");
     
     // Update weather data and refresh display
     void update();
@@ -34,6 +35,9 @@ public:
     
     // Test mode: render single frame and save as PNG
     bool renderTestFrame(const std::string& output_file);
+    
+    // Get current configuration
+    const Config& getConfig() const { return config_; }
     
 private:
     // Simplified unified rendering function
@@ -79,6 +83,9 @@ private:
     
     // Weather service for API calls
     std::unique_ptr<WeatherService> weather_service_;
+    
+    // Configuration
+    Config config_;
     
     bool initialized_;
     
