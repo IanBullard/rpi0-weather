@@ -84,10 +84,17 @@ endif()
 set(INKY_C_DIR ${CMAKE_CURRENT_SOURCE_DIR}/lib/inky_c)
 set(INKY_C_SOURCES
     ${INKY_C_DIR}/inky_common.c
-    ${INKY_C_DIR}/inky_emulator.c
-    ${INKY_C_DIR}/inky_hardware.c
     ${INKY_C_DIR}/inky_buttons.c
 )
+
+# Only include hardware OR emulator implementation, not both
+if(BUILD_EMULATOR)
+    message(STATUS "Building with inky_emulator.c (SDL3 emulator mode)")
+    list(APPEND INKY_C_SOURCES ${INKY_C_DIR}/inky_emulator.c)
+else()
+    message(STATUS "Building with inky_hardware.c (Pi hardware mode)")
+    list(APPEND INKY_C_SOURCES ${INKY_C_DIR}/inky_hardware.c)
+endif()
 
 # Create inky_c static library
 add_library(inky_c STATIC ${INKY_C_SOURCES})
