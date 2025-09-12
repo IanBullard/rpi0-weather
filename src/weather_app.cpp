@@ -1,40 +1,28 @@
 #include "weather_app.h"
-#include "weather_icons.h"
-
-// Include generated font headers
-#include "../fonts/inter24.h"
-#include "../fonts/inter32.h"
-#include "../fonts/inter48.h"
-
-// For PNG output
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "stb_image_write.h"
 
 extern "C" {
 #include <inky.h>
 }
 
-#ifdef HAVE_SDL3
-#include <SDL3/SDL.h>
-#endif
 #include <iostream>
+#include <chrono>
+#include <thread>
 #include <ctime>
 #include <iomanip>
 #include <sstream>
-#include <cstring>
 
 // Declare the mock data function
 WeatherData create_mock_weather_data();
 
-WeatherApp::WeatherApp() 
-    : display_(nullptr)
-    , use_sdl_emulator_(true) // Default to SDL emulator for now
-    , use_real_api_(true) // Use real API by default
+WeatherApp::WeatherApp()
+    : renderer_(nullptr)
+    , inky_display_(nullptr)
+    , use_sdl_emulator_(true)
+    , use_real_api_(false)
     , initialized_(false) 
 {
     weather_service_ = std::make_unique<WeatherService>();
-    
-    // Font rendering will use the embedded font data directly
+    renderer_ = std::make_unique<DisplayRenderer>();
 }
 
 WeatherApp::~WeatherApp() {
@@ -46,27 +34,16 @@ bool WeatherApp::initialize() {
         return true;
     }
     
+    // Initialize unified renderer
+    if (!renderer_->initialize(use_sdl_emulator_, inky_display_)) {
+        std::cerr << "Failed to initialize display renderer" << std::endl;
+        return false;
+    }
+    
+    // Set button callback for SDL emulator if enabled
     if (use_sdl_emulator_) {
-        // Initialize SDL3 emulator
-        sdl_emulator_ = std::make_unique<SDL3Emulator>();
-        if (!sdl_emulator_->initialize()) {
-            std::cerr << "Failed to initialize SDL3 emulator" << std::endl;
-            return false;
-        }
-        
-        // Set up button callback
-        sdl_emulator_->set_button_callback([this](int button) {
-            this->on_button_pressed(button);
-        });
-        
-        display_ = nullptr; // Don't use inky_c when using SDL
-    } else {
-        // Initialize inky display (use emulator mode)
-        display_ = inky_init(true);
-        if (!display_) {
-            std::cerr << "Failed to initialize inky display" << std::endl;
-            return false;
-        }
+        // Note: Button handling would need to be added to DisplayRenderer
+        // For now, just note that it's available
     }
     
     initialized_ = true;
@@ -76,7 +53,6 @@ bool WeatherApp::initialize() {
 
 void WeatherApp::update() {
     if (!initialized_) {
-        std::cerr << "App not initialized" << std::endl;
         return;
     }
     
@@ -86,7 +62,6 @@ void WeatherApp::update() {
         std::cout << "Fetching weather data from NWS API..." << std::endl;
         data = weather_service_->fetchWeatherData();
     } else {
-        std::cout << "Using mock weather data" << std::endl;
         data = create_mock_weather_data();
     }
     
@@ -102,316 +77,59 @@ void WeatherApp::update() {
         }
     }
     
-    // Render to display
+    // Render weather data to unified backbuffer
     render_weather(data);
+    
+    // Present to all target devices
+    renderer_->present();
     
     std::cout << "Display updated with weather data" << std::endl;
 }
 
 void WeatherApp::run() {
     if (!initialized_) {
-        std::cerr << "App not initialized" << std::endl;
+        std::cerr << "WeatherApp not initialized" << std::endl;
         return;
     }
     
-    if (use_sdl_emulator_) {
-        // Update display once initially
-        update();
+    std::cout << "Weather app initialized. Starting main loop..." << std::endl;
+    
+    // Initial update
+    update();
+    
+    // Main event loop
+    while (!renderer_->should_quit()) {
+        // Poll events (handles SDL events and quit requests)
+        renderer_->poll_events();
         
-        // SDL event loop
-        while (!sdl_emulator_->should_quit()) {
-            sdl_emulator_->poll_events();
-            // Add small delay to prevent 100% CPU usage
-#ifdef HAVE_SDL3
-            SDL_Delay(16); // ~60 FPS
-#else
-            // In console mode, just run once and exit
-            break;
-#endif
-        }
-    } else {
-        // Single update for console mode
-        update();
+        // Sleep for a short time to avoid busy waiting
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        
+        // Update weather data every minute (for now just once)
+        // In a real implementation, this would check timestamps
+        // For now, just keep the display updated
     }
+    
+    std::cout << "Exiting main loop" << std::endl;
 }
 
 void WeatherApp::shutdown() {
-    if (sdl_emulator_) {
-        sdl_emulator_->shutdown();
-        sdl_emulator_.reset();
+    if (!initialized_) {
+        return;
     }
     
-    if (display_) {
-        inky_destroy(display_);
-        display_ = nullptr;
+    if (renderer_) {
+        renderer_->shutdown();
     }
     
     initialized_ = false;
     std::cout << "Weather app shutdown" << std::endl;
 }
 
-void WeatherApp::render_weather(const WeatherData& data) {
-    // Clear display
-    clear_display();
-    
-    // Draw panel borders
-    for (int i = 0; i < 6; i++) {
-        draw_panel_border(PANELS[i].x, PANELS[i].y, PANEL_WIDTH, PANEL_HEIGHT);
-    }
-    
-    // Panel 0: Weather icon
-    draw_weather_icon(PANELS[0].x, PANELS[0].y, PANEL_WIDTH, PANEL_HEIGHT, data.weather_icon);
-    
-    // Panel 1: Current temperature
-    std::string temp_str = std::to_string(data.temperature_f()) + "°F";
-    draw_text_centered(PANELS[1].x, PANELS[1].y + 20, PANEL_WIDTH, 40, "Currently", INKY_BLACK);
-    draw_text_centered(PANELS[1].x, PANELS[1].y + 80, PANEL_WIDTH, 60, temp_str, INKY_BLACK);
-    
-    // Panel 2: Min/Max temperature
-    std::string max_str = "Hi " + std::to_string(data.temperature_max_f()) + "°F";
-    std::string min_str = "Lo " + std::to_string(data.temperature_min_f()) + "°F";
-    draw_text_centered(PANELS[2].x, PANELS[2].y + 20, PANEL_WIDTH, 40, "Forecast", INKY_BLACK);
-    draw_text_centered(PANELS[2].x, PANELS[2].y + 80, PANEL_WIDTH, 40, max_str, INKY_BLACK);
-    draw_text_centered(PANELS[2].x, PANELS[2].y + 120, PANEL_WIDTH, 40, min_str, INKY_BLACK);
-    
-    // Panel 3: Precipitation chance
-    std::string precip_str = std::to_string(data.precipitation_chance_percent) + "%";
-    draw_text_centered(PANELS[3].x, PANELS[3].y + 20, PANEL_WIDTH, 40, "Precip", INKY_BLACK);
-    draw_text_centered(PANELS[3].x, PANELS[3].y + 80, PANEL_WIDTH, 60, precip_str, INKY_BLACK);
-    
-    // Panel 4: Wind
-    std::string wind_speed_str = std::to_string(data.wind_speed_mph()) + " mph";
-    std::string wind_dir_str = std::to_string(data.wind_direction_deg) + "°";
-    draw_text_centered(PANELS[4].x, PANELS[4].y + 20, PANEL_WIDTH, 40, "Wind", INKY_BLACK);
-    draw_text_centered(PANELS[4].x, PANELS[4].y + 80, PANEL_WIDTH, 40, wind_speed_str, INKY_BLACK);
-    draw_text_centered(PANELS[4].x, PANELS[4].y + 120, PANEL_WIDTH, 40, wind_dir_str, INKY_BLACK);
-    
-    // Panel 5: Humidity/Dew
-    std::string humidity_str = std::to_string(data.humidity_percent) + "%";
-    std::string dew_str = std::to_string(data.dewpoint_f()) + "°F";
-    draw_text_centered(PANELS[5].x, PANELS[5].y + 20, PANEL_WIDTH, 40, "Humidity", INKY_BLACK);
-    draw_text_centered(PANELS[5].x, PANELS[5].y + 80, PANEL_WIDTH, 40, humidity_str, INKY_BLACK);
-    draw_text_centered(PANELS[5].x, PANELS[5].y + 120, PANEL_WIDTH, 40, dew_str, INKY_BLACK);
-    
-    // Add timestamp at bottom
-    auto now = std::time(nullptr);
-    auto tm = *std::localtime(&now);
-    std::ostringstream oss;
-    oss << std::put_time(&tm, "%m/%d/%Y %I:%M%p");
-    int date_y = BORDER_WIDTH * 3 + PANEL_HEIGHT * 2;
-    int date_h = SCREEN_HEIGHT - date_y - BORDER_WIDTH;
-    draw_text_centered(BORDER_WIDTH, date_y, SCREEN_WIDTH - BORDER_WIDTH * 2, date_h, 
-                      oss.str(), INKY_BLACK);
-    
-    // Update display
-    show_display();
-}
-
-void WeatherApp::draw_panel_border(int panel_x, int panel_y, int panel_w, int panel_h) {
-    // Simple border drawing using inky_c
-    for (int i = 0; i < BORDER_WIDTH; i++) {
-        // Top and bottom borders
-        for (int x = panel_x - i; x < panel_x + panel_w + i; x++) {
-            if (x >= 0 && x < SCREEN_WIDTH) {
-                if (panel_y - i >= 0) {
-                    if (use_sdl_emulator_ && sdl_emulator_) {
-                        sdl_emulator_->set_pixel(x, panel_y - i, 0); // Black
-                    } else if (display_) {
-                        inky_set_pixel(display_, x, panel_y - i, INKY_BLACK);
-                    }
-                }
-                if (panel_y + panel_h + i < SCREEN_HEIGHT) {
-                    if (use_sdl_emulator_ && sdl_emulator_) {
-                        sdl_emulator_->set_pixel(x, panel_y + panel_h + i, 0); // Black
-                    } else if (display_) {
-                        inky_set_pixel(display_, x, panel_y + panel_h + i, INKY_BLACK);
-                    }
-                }
-            }
-        }
-        // Left and right borders
-        for (int y = panel_y - i; y < panel_y + panel_h + i; y++) {
-            if (y >= 0 && y < SCREEN_HEIGHT) {
-                if (panel_x - i >= 0) {
-                    if (use_sdl_emulator_ && sdl_emulator_) {
-                        sdl_emulator_->set_pixel(panel_x - i, y, 0); // Black
-                    } else if (display_) {
-                        inky_set_pixel(display_, panel_x - i, y, INKY_BLACK);
-                    }
-                }
-                if (panel_x + panel_w + i < SCREEN_WIDTH) {
-                    if (use_sdl_emulator_ && sdl_emulator_) {
-                        sdl_emulator_->set_pixel(panel_x + panel_w + i, y, 0); // Black
-                    } else if (display_) {
-                        inky_set_pixel(display_, panel_x + panel_w + i, y, INKY_BLACK);
-                    }
-                }
-            }
-        }
-    }
-}
-
-void WeatherApp::draw_text_centered(int x, int y, int w, int h, const std::string& text, int color) {
-    // Choose font based on available height
-    const uint8_t* font_atlas = nullptr;
-    const void* char_data = nullptr;
-    int atlas_width = 0, atlas_height = 0;
-    int char_count = 0, line_height = 0, baseline = 0;
-    
-    if (h >= 60) {
-        // Use 48pt font
-        font_atlas = font_Inter_Regular_48::atlas_data;
-        char_data = font_Inter_Regular_48::char_data;
-        atlas_width = font_Inter_Regular_48::atlas_width;
-        atlas_height = font_Inter_Regular_48::atlas_height;
-        char_count = font_Inter_Regular_48::char_count;
-        line_height = font_Inter_Regular_48::line_height;
-        baseline = font_Inter_Regular_48::baseline;
-    } else if (h >= 40) {
-        // Use 32pt font
-        font_atlas = font_Inter_Regular_32::atlas_data;
-        char_data = font_Inter_Regular_32::char_data;
-        atlas_width = font_Inter_Regular_32::atlas_width;
-        atlas_height = font_Inter_Regular_32::atlas_height;
-        char_count = font_Inter_Regular_32::char_count;
-        line_height = font_Inter_Regular_32::line_height;
-        baseline = font_Inter_Regular_32::baseline;
-    } else {
-        // Use 24pt font
-        font_atlas = font_Inter_Regular_24::atlas_data;
-        char_data = font_Inter_Regular_24::char_data;
-        atlas_width = font_Inter_Regular_24::atlas_width;
-        atlas_height = font_Inter_Regular_24::atlas_height;
-        char_count = font_Inter_Regular_24::char_count;
-        line_height = font_Inter_Regular_24::line_height;
-        baseline = font_Inter_Regular_24::baseline;
-    }
-    
-    // For now, render simple text representation
-    // TODO: Implement proper glyph rendering from atlas
-    int text_width = text.length() * 8;  // Approximate
-    int text_height = line_height;
-    
-    int start_x = x + (w - text_width) / 2;
-    int start_y = y + (h - text_height) / 2;
-    
-    // Draw a simple placeholder for text
-    for (int ty = 0; ty < 10 && ty < h; ty++) {
-        for (int tx = 0; tx < text_width && tx < w; tx++) {
-            int px = start_x + tx;
-            int py = start_y + ty;
-            if (px >= 0 && px < SCREEN_WIDTH && py >= 0 && py < SCREEN_HEIGHT) {
-                // Simple pattern to show text location
-                if ((tx + ty) % 3 == 0) {
-                    if (use_sdl_emulator_ && sdl_emulator_) {
-                        sdl_emulator_->set_pixel(px, py, color);
-                    } else if (display_) {
-                        inky_set_pixel(display_, px, py, color);
-                    }
-                }
-            }
-        }
-    }
-}
-
-void WeatherApp::clear_display() {
-    if (use_sdl_emulator_ && sdl_emulator_) {
-        sdl_emulator_->clear(1); // White
-    } else if (display_) {
-        inky_clear(display_, INKY_WHITE);
-    }
-}
-
-void WeatherApp::show_display() {
-    if (use_sdl_emulator_ && sdl_emulator_) {
-        sdl_emulator_->update();
-    } else if (display_) {
-        inky_update(display_);
-    }
-}
-
-void WeatherApp::draw_weather_icon(int x, int y, int w, int h, const std::string& icon_name) {
-    // Try to get the icon from our embedded data
-    const auto* icon = weather_icons::get_icon(icon_name);
-    
-    if (!icon) {
-        // Fall back to "na" icon if not found
-        icon = weather_icons::get_icon("na");
-        if (!icon) {
-            // If even "na" is not found, just draw placeholder text
-            draw_text_centered(x, y, w, h, "?", INKY_BLACK);
-            return;
-        }
-    }
-    
-    // Calculate centering position
-    int icon_x = x + (w - icon->width) / 2;
-    int icon_y = y + (h - icon->height) / 2;
-    
-    // Draw the icon
-    for (int iy = 0; iy < icon->height; iy++) {
-        for (int ix = 0; ix < icon->width; ix++) {
-            int px = icon_x + ix;
-            int py = icon_y + iy;
-            
-            if (px >= 0 && px < SCREEN_WIDTH && py >= 0 && py < SCREEN_HEIGHT) {
-                uint8_t pixel = icon->data[iy * icon->width + ix];
-                
-                // Skip white pixels (background/transparent)
-                if (pixel != 1) {  // 1 = white in Inky palette
-                    // Map palette index to display color
-                    int color = pixel;  // Direct mapping for now
-                    
-                    if (use_sdl_emulator_ && sdl_emulator_) {
-                        sdl_emulator_->set_pixel(px, py, color);
-                    } else if (display_) {
-                        inky_set_pixel(display_, px, py, color);
-                    }
-                }
-            }
-        }
-    }
-}
-
 void WeatherApp::setLocation(double latitude, double longitude) {
     if (weather_service_) {
         weather_service_->setLocation(latitude, longitude);
-    }
-}
-
-void WeatherApp::on_button_pressed(int button) {
-    std::cout << "Button " << char('A' + button) << " action: ";
-    
-    switch (button) {
-        case 0: // Button A
-            std::cout << "Refresh weather data" << std::endl;
-            if (weather_service_) {
-                // Force refresh from API
-                WeatherData data = weather_service_->forceFetch();
-                if (data.is_valid) {
-                    render_weather(data);
-                }
-            } else {
-                update();
-            }
-            break;
-        case 1: // Button B  
-            std::cout << "Toggle API/Mock mode" << std::endl;
-            use_real_api_ = !use_real_api_;
-            std::cout << "Now using: " << (use_real_api_ ? "Real API" : "Mock data") << std::endl;
-            update();
-            break;
-        case 2: // Button C
-            std::cout << "Show detailed forecast" << std::endl;
-            // TODO: Implement detailed view
-            break;
-        case 3: // Button D
-            std::cout << "Settings menu" << std::endl;
-            // TODO: Implement settings
-            break;
-        default:
-            std::cout << "Unknown button" << std::endl;
-            break;
+        use_real_api_ = true;
     }
 }
 
@@ -420,41 +138,6 @@ bool WeatherApp::renderTestFrame(const std::string& output_file) {
         std::cerr << "App not initialized" << std::endl;
         return false;
     }
-    
-    // Create a buffer to hold the rendered image
-    std::vector<uint8_t> buffer(SCREEN_WIDTH * SCREEN_HEIGHT * 3); // RGB
-    
-    // Create a mapping for Inky colors to RGB
-    struct RGB { uint8_t r, g, b; };
-    const RGB inky_palette[] = {
-        {0, 0, 0},        // Black
-        {255, 255, 255},  // White  
-        {0, 255, 0},      // Green
-        {0, 0, 255},      // Blue
-        {255, 0, 0},      // Red
-        {255, 255, 0},    // Yellow
-        {255, 128, 0},    // Orange
-        {224, 224, 224}   // Clean (light gray)
-    };
-    
-    // Clear buffer to white
-    for (size_t i = 0; i < buffer.size(); i += 3) {
-        buffer[i] = 255;     // R
-        buffer[i+1] = 255;   // G  
-        buffer[i+2] = 255;   // B
-    }
-    
-    // Create a custom pixel setter that writes to our buffer
-    auto setPixelToBuffer = [&buffer, &inky_palette](int x, int y, int color) {
-        if (x >= 0 && x < SCREEN_WIDTH && y >= 0 && y < SCREEN_HEIGHT) {
-            size_t idx = (y * SCREEN_WIDTH + x) * 3;
-            if (color >= 0 && color < 8) {
-                buffer[idx] = inky_palette[color].r;     // R
-                buffer[idx+1] = inky_palette[color].g;   // G
-                buffer[idx+2] = inky_palette[color].b;   // B
-            }
-        }
-    };
     
     // Get weather data
     WeatherData data;
@@ -478,55 +161,62 @@ bool WeatherApp::renderTestFrame(const std::string& output_file) {
         }
     }
     
-    // Render the weather display directly to our buffer
-    renderWeatherToBuffer(data, setPixelToBuffer);
+    // Render to unified backbuffer
+    render_weather(data);
     
-    // Save as PNG
-    int result = stbi_write_png(output_file.c_str(), SCREEN_WIDTH, SCREEN_HEIGHT, 3, buffer.data(), SCREEN_WIDTH * 3);
-    
-    return result != 0;
+    // Save backbuffer as PNG
+    return renderer_->save_png(output_file);
 }
 
-template<typename PixelSetter>
-void WeatherApp::renderWeatherToBuffer(const WeatherData& data, PixelSetter setPixel) {
-    // Draw panel borders
+void WeatherApp::render_weather(const WeatherData& data) {
+    // Clear display to white
+    renderer_->clear(DisplayRenderer::WHITE);
+    
+    // Draw panel borders using unified renderer
     for (int i = 0; i < 6; i++) {
-        drawPanelBorderToBuffer(PANELS[i].x, PANELS[i].y, PANEL_WIDTH, PANEL_HEIGHT, setPixel);
+        renderer_->draw_panel_border(PANELS[i].x, PANELS[i].y, PANEL_WIDTH, PANEL_HEIGHT);
     }
     
     // Panel 0: Weather icon
-    drawWeatherIconToBuffer(PANELS[0].x, PANELS[0].y, PANEL_WIDTH, PANEL_HEIGHT, data.weather_icon, setPixel);
+    renderer_->draw_weather_icon(PANELS[0].x, PANELS[0].y, PANEL_WIDTH, PANEL_HEIGHT, data.weather_icon);
     
-    // Panel 1: Current temperature
+    // Panel 1: Current temperature (single value panel)
     std::string temp_str = std::to_string(data.temperature_f()) + "°F";
-    drawTextCenteredToBuffer(PANELS[1].x, PANELS[1].y + 20, PANEL_WIDTH, 40, "Currently", INKY_BLACK, setPixel);
-    drawTextCenteredToBuffer(PANELS[1].x, PANELS[1].y + 80, PANEL_WIDTH, 60, temp_str, INKY_BLACK, setPixel);
+    // Title area: full width, title font height  
+    renderer_->draw_text_centered(PANELS[1].x, PANELS[1].y, PANEL_WIDTH, 32, "Currently", DisplayRenderer::BLACK);
+    // Value area: remaining space below title
+    renderer_->draw_text_centered(PANELS[1].x, PANELS[1].y + 32, PANEL_WIDTH, PANEL_HEIGHT - 32, temp_str, DisplayRenderer::BLACK);
     
-    // Panel 2: Min/Max temperature
+    // Panel 2: Min/Max temperature (double value panel)
     std::string max_str = "Hi " + std::to_string(data.temperature_max_f()) + "°F";
     std::string min_str = "Lo " + std::to_string(data.temperature_min_f()) + "°F";
-    drawTextCenteredToBuffer(PANELS[2].x, PANELS[2].y + 20, PANEL_WIDTH, 40, "Forecast", INKY_BLACK, setPixel);
-    drawTextCenteredToBuffer(PANELS[2].x, PANELS[2].y + 80, PANEL_WIDTH, 40, max_str, INKY_BLACK, setPixel);
-    drawTextCenteredToBuffer(PANELS[2].x, PANELS[2].y + 120, PANEL_WIDTH, 40, min_str, INKY_BLACK, setPixel);
+    // Title area: full width, title font height
+    renderer_->draw_text_centered(PANELS[2].x, PANELS[2].y, PANEL_WIDTH, 32, "Forecast", DisplayRenderer::BLACK);
+    // Split remaining area in half
+    int remaining_height = PANEL_HEIGHT - 32;
+    renderer_->draw_text_centered(PANELS[2].x, PANELS[2].y + 32, PANEL_WIDTH, remaining_height/2, max_str, DisplayRenderer::BLACK);
+    renderer_->draw_text_centered(PANELS[2].x, PANELS[2].y + 32 + remaining_height/2, PANEL_WIDTH, remaining_height/2, min_str, DisplayRenderer::BLACK);
     
-    // Panel 3: Precipitation chance
+    // Panel 3: Precipitation chance (single value panel)
     std::string precip_str = std::to_string(data.precipitation_chance_percent) + "%";
-    drawTextCenteredToBuffer(PANELS[3].x, PANELS[3].y + 20, PANEL_WIDTH, 40, "Precip", INKY_BLACK, setPixel);
-    drawTextCenteredToBuffer(PANELS[3].x, PANELS[3].y + 80, PANEL_WIDTH, 60, precip_str, INKY_BLACK, setPixel);
+    renderer_->draw_text_centered(PANELS[3].x, PANELS[3].y, PANEL_WIDTH, 32, "Precip Chance", DisplayRenderer::BLACK);
+    renderer_->draw_text_centered(PANELS[3].x, PANELS[3].y + 32, PANEL_WIDTH, PANEL_HEIGHT - 32, precip_str, DisplayRenderer::BLACK);
     
-    // Panel 4: Wind
+    // Panel 4: Wind (double value panel)
     std::string wind_speed_str = std::to_string(data.wind_speed_mph()) + " mph";
     std::string wind_dir_str = std::to_string(data.wind_direction_deg) + "°";
-    drawTextCenteredToBuffer(PANELS[4].x, PANELS[4].y + 20, PANEL_WIDTH, 40, "Wind", INKY_BLACK, setPixel);
-    drawTextCenteredToBuffer(PANELS[4].x, PANELS[4].y + 80, PANEL_WIDTH, 40, wind_speed_str, INKY_BLACK, setPixel);
-    drawTextCenteredToBuffer(PANELS[4].x, PANELS[4].y + 120, PANEL_WIDTH, 40, wind_dir_str, INKY_BLACK, setPixel);
+    renderer_->draw_text_centered(PANELS[4].x, PANELS[4].y, PANEL_WIDTH, 32, "Wind", DisplayRenderer::BLACK);
+    remaining_height = PANEL_HEIGHT - 32;
+    renderer_->draw_text_centered(PANELS[4].x, PANELS[4].y + 32, PANEL_WIDTH, remaining_height/2, wind_speed_str, DisplayRenderer::BLACK);
+    renderer_->draw_text_centered(PANELS[4].x, PANELS[4].y + 32 + remaining_height/2, PANEL_WIDTH, remaining_height/2, wind_dir_str, DisplayRenderer::BLACK);
     
-    // Panel 5: Humidity/Dew
+    // Panel 5: Humidity/Dew (double value panel)
     std::string humidity_str = std::to_string(data.humidity_percent) + "%";
     std::string dew_str = std::to_string(data.dewpoint_f()) + "°F";
-    drawTextCenteredToBuffer(PANELS[5].x, PANELS[5].y + 20, PANEL_WIDTH, 40, "Humidity", INKY_BLACK, setPixel);
-    drawTextCenteredToBuffer(PANELS[5].x, PANELS[5].y + 80, PANEL_WIDTH, 40, humidity_str, INKY_BLACK, setPixel);
-    drawTextCenteredToBuffer(PANELS[5].x, PANELS[5].y + 120, PANEL_WIDTH, 40, dew_str, INKY_BLACK, setPixel);
+    renderer_->draw_text_centered(PANELS[5].x, PANELS[5].y, PANEL_WIDTH, 32, "Humidity/Dew", DisplayRenderer::BLACK);
+    remaining_height = PANEL_HEIGHT - 32;
+    renderer_->draw_text_centered(PANELS[5].x, PANELS[5].y + 32, PANEL_WIDTH, remaining_height/2, humidity_str, DisplayRenderer::BLACK);
+    renderer_->draw_text_centered(PANELS[5].x, PANELS[5].y + 32 + remaining_height/2, PANEL_WIDTH, remaining_height/2, dew_str, DisplayRenderer::BLACK);
     
     // Add timestamp at bottom
     auto now = std::time(nullptr);
@@ -535,249 +225,6 @@ void WeatherApp::renderWeatherToBuffer(const WeatherData& data, PixelSetter setP
     oss << std::put_time(&tm, "%m/%d/%Y %I:%M%p");
     int date_y = BORDER_WIDTH * 3 + PANEL_HEIGHT * 2;
     int date_h = SCREEN_HEIGHT - date_y - BORDER_WIDTH;
-    drawTextCenteredToBuffer(BORDER_WIDTH, date_y, SCREEN_WIDTH - BORDER_WIDTH * 2, date_h, 
-                           oss.str(), INKY_BLACK, setPixel);
-}
-
-template<typename PixelSetter>
-void WeatherApp::drawPanelBorderToBuffer(int panel_x, int panel_y, int panel_w, int panel_h, PixelSetter setPixel) {
-    // Simple border drawing
-    for (int i = 0; i < BORDER_WIDTH; i++) {
-        // Top and bottom borders
-        for (int x = panel_x - i; x < panel_x + panel_w + i; x++) {
-            if (x >= 0 && x < SCREEN_WIDTH) {
-                if (panel_y - i >= 0) {
-                    setPixel(x, panel_y - i, 0); // Black
-                }
-                if (panel_y + panel_h + i < SCREEN_HEIGHT) {
-                    setPixel(x, panel_y + panel_h + i, 0); // Black
-                }
-            }
-        }
-        // Left and right borders
-        for (int y = panel_y - i; y < panel_y + panel_h + i; y++) {
-            if (y >= 0 && y < SCREEN_HEIGHT) {
-                if (panel_x - i >= 0) {
-                    setPixel(panel_x - i, y, 0); // Black
-                }
-                if (panel_x + panel_w + i < SCREEN_WIDTH) {
-                    setPixel(panel_x + panel_w + i, y, 0); // Black
-                }
-            }
-        }
-    }
-}
-
-template<typename PixelSetter>
-void WeatherApp::drawTextCenteredToBuffer(int x, int y, int w, int h, const std::string& text, int color, PixelSetter setPixel) {
-    // Choose font based on available height
-    const uint8_t* font_atlas = nullptr;
-    const font_Inter_Regular_24::CharData* char_data_24 = nullptr;
-    const font_Inter_Regular_32::CharData* char_data_32 = nullptr;
-    const font_Inter_Regular_48::CharData* char_data_48 = nullptr;
-    int atlas_width = 0, atlas_height = 0;
-    int char_count = 0, line_height = 0, baseline = 0;
-    int font_size = 24;
-    
-    if (h >= 60) {
-        // Use 48pt font
-        font_atlas = font_Inter_Regular_48::atlas_data;
-        char_data_48 = font_Inter_Regular_48::char_data;
-        atlas_width = font_Inter_Regular_48::atlas_width;
-        atlas_height = font_Inter_Regular_48::atlas_height;
-        char_count = font_Inter_Regular_48::char_count;
-        line_height = font_Inter_Regular_48::line_height;
-        baseline = font_Inter_Regular_48::baseline;
-        font_size = 48;
-    } else if (h >= 40) {
-        // Use 32pt font
-        font_atlas = font_Inter_Regular_32::atlas_data;
-        char_data_32 = font_Inter_Regular_32::char_data;
-        atlas_width = font_Inter_Regular_32::atlas_width;
-        atlas_height = font_Inter_Regular_32::atlas_height;
-        char_count = font_Inter_Regular_32::char_count;
-        line_height = font_Inter_Regular_32::line_height;
-        baseline = font_Inter_Regular_32::baseline;
-        font_size = 32;
-    } else {
-        // Use 24pt font
-        font_atlas = font_Inter_Regular_24::atlas_data;
-        char_data_24 = font_Inter_Regular_24::char_data;
-        atlas_width = font_Inter_Regular_24::atlas_width;
-        atlas_height = font_Inter_Regular_24::atlas_height;
-        char_count = font_Inter_Regular_24::char_count;
-        line_height = font_Inter_Regular_24::line_height;
-        baseline = font_Inter_Regular_24::baseline;
-        font_size = 24;
-    }
-    
-    // Calculate text width for centering
-    int text_width = 0;
-    for (char c : text) {
-        uint32_t codepoint = static_cast<uint32_t>(c);
-        
-        // Find character in font data
-        bool found = false;
-        int advance = 0;
-        
-        if (font_size == 48 && char_data_48) {
-            for (int i = 0; i < char_count; i++) {
-                if (char_data_48[i].codepoint == codepoint) {
-                    advance = char_data_48[i].advance;
-                    found = true;
-                    break;
-                }
-            }
-        } else if (font_size == 32 && char_data_32) {
-            for (int i = 0; i < char_count; i++) {
-                if (char_data_32[i].codepoint == codepoint) {
-                    advance = char_data_32[i].advance;
-                    found = true;
-                    break;
-                }
-            }
-        } else if (font_size == 24 && char_data_24) {
-            for (int i = 0; i < char_count; i++) {
-                if (char_data_24[i].codepoint == codepoint) {
-                    advance = char_data_24[i].advance;
-                    found = true;
-                    break;
-                }
-            }
-        }
-        
-        if (found) {
-            text_width += advance;
-        } else {
-            // Default character width
-            text_width += font_size / 2;
-        }
-    }
-    
-    // Center the text
-    int start_x = x + (w - text_width) / 2;
-    int start_y = y + (h - line_height) / 2 + baseline;
-    
-    int cur_x = start_x;
-    
-    // Render each character
-    for (char c : text) {
-        uint32_t codepoint = static_cast<uint32_t>(c);
-        
-        // Find character in font data
-        bool found = false;
-        int char_x = 0, char_y = 0, char_w = 0, char_h = 0;
-        int xoff = 0, yoff = 0, advance = 0;
-        
-        if (font_size == 48 && char_data_48) {
-            for (int i = 0; i < char_count; i++) {
-                if (char_data_48[i].codepoint == codepoint) {
-                    char_x = char_data_48[i].x;
-                    char_y = char_data_48[i].y;
-                    char_w = char_data_48[i].w;
-                    char_h = char_data_48[i].h;
-                    xoff = char_data_48[i].xoff;
-                    yoff = char_data_48[i].yoff;
-                    advance = char_data_48[i].advance;
-                    found = true;
-                    break;
-                }
-            }
-        } else if (font_size == 32 && char_data_32) {
-            for (int i = 0; i < char_count; i++) {
-                if (char_data_32[i].codepoint == codepoint) {
-                    char_x = char_data_32[i].x;
-                    char_y = char_data_32[i].y;
-                    char_w = char_data_32[i].w;
-                    char_h = char_data_32[i].h;
-                    xoff = char_data_32[i].xoff;
-                    yoff = char_data_32[i].yoff;
-                    advance = char_data_32[i].advance;
-                    found = true;
-                    break;
-                }
-            }
-        } else if (font_size == 24 && char_data_24) {
-            for (int i = 0; i < char_count; i++) {
-                if (char_data_24[i].codepoint == codepoint) {
-                    char_x = char_data_24[i].x;
-                    char_y = char_data_24[i].y;
-                    char_w = char_data_24[i].w;
-                    char_h = char_data_24[i].h;
-                    xoff = char_data_24[i].xoff;
-                    yoff = char_data_24[i].yoff;
-                    advance = char_data_24[i].advance;
-                    found = true;
-                    break;
-                }
-            }
-        }
-        
-        if (found && char_w > 0 && char_h > 0) {
-            // Render the glyph from the atlas
-            for (int gy = 0; gy < char_h; gy++) {
-                for (int gx = 0; gx < char_w; gx++) {
-                    int atlas_idx = (char_y + gy) * atlas_width + (char_x + gx);
-                    uint8_t alpha = font_atlas[atlas_idx];
-                    
-                    // Only draw visible pixels (threshold alpha)
-                    if (alpha > 128) {
-                        int px = cur_x + xoff + gx;
-                        int py = start_y + yoff + gy;
-                        
-                        if (px >= 0 && px < SCREEN_WIDTH && py >= 0 && py < SCREEN_HEIGHT) {
-                            setPixel(px, py, color);
-                        }
-                    }
-                }
-            }
-        }
-        
-        // Move to next character position
-        if (found) {
-            cur_x += advance;
-        } else {
-            // Default advance for unknown characters
-            cur_x += font_size / 2;
-        }
-    }
-}
-
-template<typename PixelSetter>
-void WeatherApp::drawWeatherIconToBuffer(int x, int y, int w, int h, const std::string& icon_name, PixelSetter setPixel) {
-    // Try to get the icon from our embedded data
-    const auto* icon = weather_icons::get_icon(icon_name);
-    
-    if (!icon) {
-        // Fall back to "na" icon if not found
-        icon = weather_icons::get_icon("na");
-        if (!icon) {
-            // If even "na" is not found, just draw placeholder text
-            drawTextCenteredToBuffer(x, y, w, h, "?", INKY_BLACK, setPixel);
-            return;
-        }
-    }
-    
-    // Calculate centering position
-    int icon_x = x + (w - icon->width) / 2;
-    int icon_y = y + (h - icon->height) / 2;
-    
-    // Draw the icon
-    for (int iy = 0; iy < icon->height; iy++) {
-        for (int ix = 0; ix < icon->width; ix++) {
-            int px = icon_x + ix;
-            int py = icon_y + iy;
-            
-            if (px >= 0 && px < SCREEN_WIDTH && py >= 0 && py < SCREEN_HEIGHT) {
-                uint8_t pixel = icon->data[iy * icon->width + ix];
-                
-                // Skip white pixels (background/transparent)
-                if (pixel != 1) {  // 1 = white in Inky palette
-                    // Map palette index to display color
-                    int color = pixel;  // Direct mapping for now
-                    setPixel(px, py, color);
-                }
-            }
-        }
-    }
+    renderer_->draw_text_centered(BORDER_WIDTH, date_y, SCREEN_WIDTH - BORDER_WIDTH * 2, date_h, 
+                                 oss.str(), DisplayRenderer::BLACK);
 }

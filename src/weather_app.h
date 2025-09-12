@@ -2,7 +2,7 @@
 
 #include "weather_data.h"
 #include "weather_service.h"
-#include "sdl_emulator.h"
+#include "display_renderer.h"
 #include <memory>
 
 // Forward declarations
@@ -36,26 +36,8 @@ public:
     bool renderTestFrame(const std::string& output_file);
     
 private:
-    // Display functions
+    // Simplified unified rendering function
     void render_weather(const WeatherData& data);
-    void draw_panel_border(int panel_x, int panel_y, int panel_w, int panel_h);
-    void draw_text_centered(int x, int y, int w, int h, const std::string& text, int color);
-    void draw_weather_icon(int x, int y, int w, int h, const std::string& icon_name);
-    void clear_display();
-    void show_display();
-    
-    // Test mode rendering (renders to a custom pixel setter function)
-    template<typename PixelSetter>
-    void renderWeatherToBuffer(const WeatherData& data, PixelSetter setPixel);
-    
-    template<typename PixelSetter>
-    void drawPanelBorderToBuffer(int panel_x, int panel_y, int panel_w, int panel_h, PixelSetter setPixel);
-    
-    template<typename PixelSetter>
-    void drawTextCenteredToBuffer(int x, int y, int w, int h, const std::string& text, int color, PixelSetter setPixel);
-    
-    template<typename PixelSetter>
-    void drawWeatherIconToBuffer(int x, int y, int w, int h, const std::string& icon_name, PixelSetter setPixel);
     
     // Display constants
     static constexpr int SCREEN_WIDTH = 600;
@@ -87,17 +69,16 @@ private:
         {BORDER_WIDTH * 3 + PANEL_WIDTH * 2, BORDER_WIDTH * 2 + PANEL_HEIGHT}  // Humidity
     };
     
-    // Display handle
-    inky_t* display_;
+    // Unified display renderer
+    std::unique_ptr<DisplayRenderer> renderer_;
     
-    // SDL3 emulator (for desktop testing)
-    std::unique_ptr<SDL3Emulator> sdl_emulator_;
+    // Display targets
+    inky_t* inky_display_;
     bool use_sdl_emulator_;
+    bool use_real_api_;
     
     // Weather service for API calls
     std::unique_ptr<WeatherService> weather_service_;
-    bool use_real_api_;
-    
     
     bool initialized_;
     

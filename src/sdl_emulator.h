@@ -12,7 +12,7 @@ public:
     // Display dimensions
     static constexpr int DISPLAY_WIDTH = 600;
     static constexpr int DISPLAY_HEIGHT = 448;
-    static constexpr int WINDOW_SCALE = 2; // 2x scaling for better visibility
+    static constexpr int WINDOW_SCALE = 1; // 1x scaling for smaller window
     
     // Inky 7-color palette
     struct Color {

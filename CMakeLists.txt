@@ -83,6 +83,7 @@ set(SOURCES
     src/weather_app.cpp
     src/weather_data.cpp
     src/sdl_emulator.cpp
+    src/display_renderer.cpp
     src/nws_client.cpp
     src/weather_service.cpp
     src/bitmap_font.cpp
