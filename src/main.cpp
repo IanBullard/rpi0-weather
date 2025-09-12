@@ -40,6 +40,9 @@ int main(int argc, char* argv[]) {
         return 1;
     }
     
+    // Set location to enable real weather API (Round Rock, TX)
+    app.setLocation(30.5084, -97.6781);
+    
     if (test_mode) {
         std::cout << "Test mode: Rendering single frame to " << output_file << std::endl;
         if (!app.renderTestFrame(output_file)) {

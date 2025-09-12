@@ -183,10 +183,33 @@ void DisplayRenderer::draw_text_centered(int x, int y, int w, int h, const std::
         font_size = 24;
     }
     
-    // Calculate text width for centering
+    // Calculate text width for centering with UTF-8 decoding
     int text_width = 0;
-    for (char c : text) {
-        uint32_t codepoint = static_cast<uint32_t>(c);
+    for (size_t i = 0; i < text.size();) {
+        uint32_t codepoint;
+        
+        // Simple UTF-8 decoding for common characters
+        unsigned char byte1 = static_cast<unsigned char>(text[i]);
+        if (byte1 < 0x80) {
+            // ASCII character (0xxxxxxx)
+            codepoint = byte1;
+            i++;
+        } else if ((byte1 & 0xE0) == 0xC0 && i + 1 < text.size()) {
+            // 2-byte UTF-8 character (110xxxxx 10xxxxxx)
+            unsigned char byte2 = static_cast<unsigned char>(text[i + 1]);
+            if ((byte2 & 0xC0) == 0x80) {
+                codepoint = ((byte1 & 0x1F) << 6) | (byte2 & 0x3F);
+                i += 2;
+            } else {
+                // Invalid UTF-8, skip this byte
+                i++;
+                continue;
+            }
+        } else {
+            // Unsupported UTF-8 sequence or invalid, skip this byte
+            i++;
+            continue;
+        }
         
         // Find character in font data
         bool found = false;
@@ -234,9 +257,32 @@ void DisplayRenderer::draw_text_centered(int x, int y, int w, int h, const std::
     
     int cur_x = start_x;
     
-    // Render each character to backbuffer
-    for (char c : text) {
-        uint32_t codepoint = static_cast<uint32_t>(c);
+    // Render each character to backbuffer with UTF-8 decoding
+    for (size_t i = 0; i < text.size();) {
+        uint32_t codepoint;
+        
+        // Simple UTF-8 decoding for common characters
+        unsigned char byte1 = static_cast<unsigned char>(text[i]);
+        if (byte1 < 0x80) {
+            // ASCII character (0xxxxxxx)
+            codepoint = byte1;
+            i++;
+        } else if ((byte1 & 0xE0) == 0xC0 && i + 1 < text.size()) {
+            // 2-byte UTF-8 character (110xxxxx 10xxxxxx)
+            unsigned char byte2 = static_cast<unsigned char>(text[i + 1]);
+            if ((byte2 & 0xC0) == 0x80) {
+                codepoint = ((byte1 & 0x1F) << 6) | (byte2 & 0x3F);
+                i += 2;
+            } else {
+                // Invalid UTF-8, skip this byte
+                i++;
+                continue;
+            }
+        } else {
+            // Unsupported UTF-8 sequence or invalid, skip this byte
+            i++;
+            continue;
+        }
         
         // Find character in font data
         bool found = false;

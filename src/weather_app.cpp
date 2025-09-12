@@ -181,7 +181,7 @@ void WeatherApp::render_weather(const WeatherData& data) {
     renderer_->draw_weather_icon(PANELS[0].x, PANELS[0].y, PANEL_WIDTH, PANEL_HEIGHT, data.weather_icon);
     
     // Panel 1: Current temperature (single value panel)
-    std::string temp_str = std::to_string(data.temperature_f()) + "°F";
+    std::string temp_str = std::to_string(data.temperature_f()) + "F";
     // Title area: full width, title font height (24pt font line_height = 24)
     constexpr int TITLE_HEIGHT = 24;
     renderer_->draw_text_centered(PANELS[1].x, PANELS[1].y, PANEL_WIDTH, TITLE_HEIGHT, "Currently", DisplayRenderer::BLACK);
@@ -189,8 +189,8 @@ void WeatherApp::render_weather(const WeatherData& data) {
     renderer_->draw_text_centered(PANELS[1].x, PANELS[1].y + TITLE_HEIGHT, PANEL_WIDTH, PANEL_HEIGHT - TITLE_HEIGHT, temp_str, DisplayRenderer::BLACK);
     
     // Panel 2: Min/Max temperature (double value panel)
-    std::string max_str = "Hi " + std::to_string(data.temperature_max_f()) + "°F";
-    std::string min_str = "Lo " + std::to_string(data.temperature_min_f()) + "°F";
+    std::string max_str = "Hi " + std::to_string(data.temperature_max_f()) + "F";
+    std::string min_str = "Lo " + std::to_string(data.temperature_min_f()) + "F";
     // Title area: full width, title font height
     renderer_->draw_text_centered(PANELS[2].x, PANELS[2].y, PANEL_WIDTH, TITLE_HEIGHT, "Forecast", DisplayRenderer::BLACK);
     // Split remaining area in half
@@ -213,7 +213,7 @@ void WeatherApp::render_weather(const WeatherData& data) {
     
     // Panel 5: Humidity/Dew (double value panel)
     std::string humidity_str = std::to_string(data.humidity_percent) + "%";
-    std::string dew_str = std::to_string(data.dewpoint_f()) + "°F";
+    std::string dew_str = std::to_string(data.dewpoint_f()) + "F";
     renderer_->draw_text_centered(PANELS[5].x, PANELS[5].y, PANEL_WIDTH, TITLE_HEIGHT, "Humidity/Dew", DisplayRenderer::BLACK);
     remaining_height = PANEL_HEIGHT - TITLE_HEIGHT;
     renderer_->draw_text_centered(PANELS[5].x, PANELS[5].y + TITLE_HEIGHT, PANEL_WIDTH, remaining_height/2, humidity_str, DisplayRenderer::BLACK);
