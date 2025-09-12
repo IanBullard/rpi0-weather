@@ -96,7 +96,12 @@ private:
     
     bool initialized_;
     bool debug_enabled_;
+    bool update_in_progress_;
     
     // Timer for weather updates
     std::chrono::steady_clock::time_point last_update_;
+    
+    // Helper function to get next 10-minute interval
+    std::chrono::system_clock::time_point getNextUpdateTime();
+    bool shouldSkipUpdate(const std::chrono::system_clock::time_point& scheduled_time);
 };

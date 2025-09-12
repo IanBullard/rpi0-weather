@@ -36,6 +36,10 @@ bool Config::load_from_file(const std::string& config_path) {
             use_sdl_emulator = config_json["use_sdl_emulator"];
         }
         
+        if (config_json.contains("timezone")) {
+            timezone = config_json["timezone"];
+        }
+        
         std::cout << "Loaded configuration from " << config_path << std::endl;
         return true;
         
@@ -53,6 +57,7 @@ bool Config::save_to_file(const std::string& config_path) const {
         config_json["longitude"] = longitude;
         config_json["use_real_api"] = use_real_api;
         config_json["use_sdl_emulator"] = use_sdl_emulator;
+        config_json["timezone"] = timezone;
         
         std::ofstream file(config_path);
         if (!file.is_open()) {

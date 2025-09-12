@@ -1,5 +1,6 @@
 #include "weather_app.h"
 #include "weather_icons_large.h"
+#include "logger.h"
 
 // For PNG output in renderAllIconsTest
 #include "stb_image_write.h"
@@ -14,6 +15,8 @@ extern "C" {
 #include <ctime>
 #include <iomanip>
 #include <sstream>
+#include <cstring>
+#include <cstdlib>
 
 // Static WeatherApp instance for button callback
 static WeatherApp* g_weather_app_instance = nullptr;
@@ -35,7 +38,8 @@ WeatherApp::WeatherApp()
     , use_sdl_emulator_(true)
     , use_real_api_(false)
     , initialized_(false)
-    , debug_enabled_(false) 
+    , debug_enabled_(false)
+    , update_in_progress_(false) 
 {
     weather_service_ = std::make_unique<WeatherService>();
     renderer_ = std::make_unique<DisplayRenderer>();
@@ -75,49 +79,12 @@ bool WeatherApp::initialize(const std::string& config_file, bool debug) {
     }
     
     // Initialize Inky display if not using SDL emulator
-    if (debug_enabled_) {
-        std::cout << "Hardware display check: use_sdl_emulator_=" << use_sdl_emulator_ << std::endl;
-    }
-    
     if (!use_sdl_emulator_) {
-        if (debug_enabled_) {
-            std::cout << "Initializing hardware display..." << std::endl;
-            std::cout << "Checking hardware prerequisites..." << std::endl;
-            
-            // Check SPI device
-            FILE* spi_check = fopen("/dev/spidev0.0", "r");
-            if (spi_check) {
-                std::cout << "✓ SPI device /dev/spidev0.0 accessible" << std::endl;
-                fclose(spi_check);
-            } else {
-                std::cout << "✗ SPI device /dev/spidev0.0 not accessible" << std::endl;
-            }
-            
-            // Check GPIO device
-            FILE* gpio_check = fopen("/dev/gpiochip0", "r");
-            if (gpio_check) {
-                std::cout << "✓ GPIO device /dev/gpiochip0 accessible" << std::endl;
-                fclose(gpio_check);
-            } else {
-                std::cout << "✗ GPIO device /dev/gpiochip0 not accessible" << std::endl;
-            }
-        }
-        
         inky_display_ = inky_init(false);  // false = hardware mode
         if (!inky_display_) {
             std::cerr << "Failed to initialize hardware display" << std::endl;
-            if (debug_enabled_) {
-                std::cerr << "Hardware initialization failed - check SPI/GPIO permissions and hardware connections" << std::endl;
-                std::cerr << "Try running with 'sudo' or check that user is in 'gpio' and 'spi' groups" << std::endl;
-            }
+            std::cerr << "Try running with 'sudo' or check that user is in 'gpio' and 'spi' groups" << std::endl;
             return false;
-        }
-        if (debug_enabled_) {
-            std::cout << "Hardware display initialized successfully, inky_display_=" << inky_display_ << std::endl;
-        }
-    } else {
-        if (debug_enabled_) {
-            std::cout << "Skipping hardware display initialization (using SDL emulator)" << std::endl;
         }
     }
     
@@ -132,29 +99,38 @@ bool WeatherApp::initialize(const std::string& config_file, bool debug) {
     
     // Initialize hardware buttons (works on Pi, no-op on emulator)
     if (inky_button_init() == 0) {
-        if (debug_enabled_) {
-            std::cout << "Hardware buttons initialized" << std::endl;
-        }
         inky_button_set_callback(button_callback, nullptr);
-    } else {
-        if (debug_enabled_) {
-            std::cout << "Hardware buttons not available (running on emulator or buttons not connected)" << std::endl;
+    }
+    
+    // Initialize logger
+    Logger::getInstance().initialize();
+    
+    // Set timezone environment variable for correct local time display
+    if (!config_.timezone.empty()) {
+        std::string tz_env = "TZ=" + config_.timezone;
+        if (putenv(const_cast<char*>(tz_env.c_str())) == 0) {
+            tzset();  // Update timezone info
+            if (debug_enabled_) {
+                std::cout << "Timezone set to: " << config_.timezone << std::endl;
+            }
+        } else {
+            std::cerr << "Warning: Failed to set timezone to " << config_.timezone << std::endl;
         }
     }
     
     initialized_ = true;
     std::cout << "Weather app initialized successfully for " << config_.location_name << std::endl;
+    Logger::getInstance().logInfo("Weather app initialized for " + config_.location_name);
     return true;
 }
 
 void WeatherApp::update() {
-    if (!initialized_) {
+    if (!initialized_ || update_in_progress_) {
         return;
     }
     
-    if (debug_enabled_) {
-        std::cout << "WeatherApp::update() called" << std::endl;
-    }
+    // Set flag to prevent concurrent updates
+    update_in_progress_ = true;
     
     // Get weather data
     WeatherData data;
@@ -173,27 +149,28 @@ void WeatherApp::update() {
             data = create_mock_weather_data();
         }
         if (!data.is_valid) {
+            update_in_progress_ = false;  // Clear flag on error
             return;
         }
     }
     
     // Render weather data to unified backbuffer
-    if (debug_enabled_) {
-        std::cout << "Calling render_weather()..." << std::endl;
-    }
     render_weather(data);
     
     // Present to all target devices
-    if (debug_enabled_) {
-        std::cout << "Calling renderer_->present()..." << std::endl;
-    }
     renderer_->present();
     
-    if (debug_enabled_) {
-        std::cout << "WeatherApp::update() completed" << std::endl;
-    }
+    // Log the display update
+    Logger::getInstance().logDisplayUpdate(
+        config_.location_name,
+        static_cast<int>(data.temperature_c * 9.0 / 5.0 + 32),  // Convert C to F for logging
+        data.weather_description,
+        use_real_api_ ? "NWS" : "MOCK"
+    );
     
-    std::cout << "Display updated with weather data" << std::endl;
+    // Update timestamp and clear flag
+    last_update_ = std::chrono::steady_clock::now();
+    update_in_progress_ = false;
 }
 
 void WeatherApp::run() {
@@ -204,12 +181,11 @@ void WeatherApp::run() {
     
     std::cout << "Weather app initialized. Starting main loop..." << std::endl;
     
-    // Initial update
+    // Initial update on launch
     update();
     
-    // Timer for 10-minute weather updates (shared with button handler)
-    last_update_ = std::chrono::steady_clock::now();
-    constexpr auto UPDATE_INTERVAL = std::chrono::minutes(10);
+    // Calculate next aligned update time (10, 20, 30, 40, 50, or 00 minutes past the hour)
+    auto next_update = getNextUpdateTime();
     
     // Main event loop
     while (!renderer_->should_quit()) {
@@ -219,12 +195,27 @@ void WeatherApp::run() {
         // Poll hardware buttons
         inky_button_poll();
         
-        // Check if it's time for weather update (every 10 minutes)
-        auto now = std::chrono::steady_clock::now();
-        if (now - last_update_ >= UPDATE_INTERVAL) {
-            std::cout << "Updating weather data (10-minute timer)..." << std::endl;
-            update();
-            last_update_ = now;
+        // Check if it's time for scheduled update
+        auto now = std::chrono::system_clock::now();
+        if (now >= next_update) {
+            // Check if we should skip this update (if updated within last 2 minutes)
+            if (!shouldSkipUpdate(next_update)) {
+                // Get the minute for logging
+                auto update_time_t = std::chrono::system_clock::to_time_t(next_update);
+                std::tm* update_tm = std::localtime(&update_time_t);
+                
+                std::cout << "Scheduled weather update at " 
+                          << std::setfill('0') << std::setw(2) << update_tm->tm_hour << ":"
+                          << std::setfill('0') << std::setw(2) << update_tm->tm_min 
+                          << std::endl;
+                Logger::getInstance().logInfo("Scheduled weather update");
+                update();
+            } else {
+                Logger::getInstance().logInfo("Skipping scheduled update (recent update within 2 minutes)");
+            }
+            
+            // Calculate next update time
+            next_update = getNextUpdateTime();
         }
         
         // Sleep for a short time to avoid busy waiting
@@ -254,6 +245,7 @@ void WeatherApp::shutdown() {
     }
     
     initialized_ = false;
+    Logger::getInstance().close();
     std::cout << "Weather app shutdown" << std::endl;
 }
 
@@ -539,10 +531,49 @@ bool WeatherApp::renderAllIconsTest(const std::string& output_file) {
 }
 
 void WeatherApp::on_button_pressed(int button) {
-    // Any button press triggers a weather update
-    std::cout << "Button " << char('A' + button) << " pressed - updating weather..." << std::endl;
-    update();
+    // Any button press triggers a weather update (if not already updating)
+    char button_char = 'A' + button;
     
-    // Reset the timer to prevent immediate automatic update
-    last_update_ = std::chrono::steady_clock::now();
+    if (update_in_progress_) {
+        std::cout << "Button " << button_char << " pressed - update already in progress, ignoring" << std::endl;
+        Logger::getInstance().logInfo("Button " + std::string(1, button_char) + " pressed - ignored (update in progress)");
+        return;
+    }
+    
+    std::cout << "Button " << button_char << " pressed - updating weather..." << std::endl;
+    Logger::getInstance().logButtonPress(button_char);
+    update();
+}
+
+std::chrono::system_clock::time_point WeatherApp::getNextUpdateTime() {
+    auto now = std::chrono::system_clock::now();
+    auto now_time_t = std::chrono::system_clock::to_time_t(now);
+    std::tm now_tm = *std::localtime(&now_time_t);  // Make a copy
+    
+    // Calculate minutes to next 10-minute interval
+    int current_minutes = now_tm.tm_min;
+    int next_interval = ((current_minutes / 10) + 1) * 10;
+    
+    if (next_interval >= 60) {
+        // Move to next hour
+        now_tm.tm_hour++;
+        next_interval = 0;
+    }
+    
+    // Set to next 10-minute interval
+    now_tm.tm_min = next_interval;
+    now_tm.tm_sec = 0;
+    
+    auto next_time = std::chrono::system_clock::from_time_t(std::mktime(&now_tm));
+    return next_time;
+}
+
+bool WeatherApp::shouldSkipUpdate(const std::chrono::system_clock::time_point& scheduled_time) {
+    // Skip if we've updated within the last 2 minutes
+    auto now = std::chrono::steady_clock::now();
+    auto time_since_last_update = std::chrono::duration_cast<std::chrono::minutes>(
+        now - last_update_);
+    
+    // Skip if last update was less than 2 minutes ago
+    return time_since_last_update.count() < 2;
 }

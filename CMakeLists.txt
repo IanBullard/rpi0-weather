@@ -119,6 +119,7 @@ set(SOURCES
     src/bitmap_font.cpp
     src/font_renderer.cpp
     src/config.cpp
+    src/logger.cpp
 )
 
 # Create executable

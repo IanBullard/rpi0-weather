@@ -8,6 +8,7 @@ struct Config {
     double longitude = -97.6781;
     bool use_real_api = true;
     bool use_sdl_emulator = true;
+    std::string timezone = "America/Chicago";  // Default to Central Time
     
     // Load configuration from JSON file
     bool load_from_file(const std::string& config_path);
