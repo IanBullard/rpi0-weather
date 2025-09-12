@@ -1,6 +1,6 @@
 #include "display_renderer.h"
 #include "sdl_emulator.h"
-#include "weather_icons.h"
+#include "weather_icons_large.h"
 
 // Include generated font headers
 #include "../fonts/inter24.h"

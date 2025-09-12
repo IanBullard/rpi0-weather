@@ -36,6 +36,9 @@ public:
     // Test mode: render single frame and save as PNG
     bool renderTestFrame(const std::string& output_file);
     
+    // Test mode: render all weather icons in grid and save as PNG
+    bool renderAllIconsTest(const std::string& output_file);
+    
     // Get current configuration
     const Config& getConfig() const { return config_; }
     

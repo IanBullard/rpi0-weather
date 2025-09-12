@@ -7,13 +7,15 @@
 void print_usage(const char* prog_name) {
     std::cout << "Usage: " << prog_name << " [options]\n";
     std::cout << "Options:\n";
-    std::cout << "  --test <output.png>  Render one frame and save as PNG\n";
-    std::cout << "  --config <file>      Use specified config file (default: config.json)\n";
-    std::cout << "  --help               Show this help message\n";
+    std::cout << "  --test <output.png>       Render one frame and save as PNG\n";
+    std::cout << "  --test-icons <output.png> Render all weather icons in grid and save as PNG\n";
+    std::cout << "  --config <file>           Use specified config file (default: config.json)\n";
+    std::cout << "  --help                    Show this help message\n";
 }
 
 int main(int argc, char* argv[]) {
     bool test_mode = false;
+    bool test_icons_mode = false;
     std::string output_file;
     std::string config_file = "config.json";
     
@@ -22,6 +24,9 @@ int main(int argc, char* argv[]) {
         std::string arg = argv[i];
         if (arg == "--test" && i + 1 < argc) {
             test_mode = true;
+            output_file = argv[++i];
+        } else if (arg == "--test-icons" && i + 1 < argc) {
+            test_icons_mode = true;
             output_file = argv[++i];
         } else if (arg == "--config" && i + 1 < argc) {
             config_file = argv[++i];
@@ -51,6 +56,13 @@ int main(int argc, char* argv[]) {
             return 1;
         }
         std::cout << "Test frame saved successfully" << std::endl;
+    } else if (test_icons_mode) {
+        std::cout << "Test icons mode: Rendering all icons grid to " << output_file << std::endl;
+        if (!app.renderAllIconsTest(output_file)) {
+            std::cerr << "Failed to render icons test" << std::endl;
+            return 1;
+        }
+        std::cout << "Icons test saved successfully" << std::endl;
     } else {
         std::cout << "Weather app initialized. Starting main loop..." << std::endl;
         // Run the main event loop (will handle SDL events or single update)
