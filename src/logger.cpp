@@ -31,7 +31,6 @@ bool Logger::initialize(const std::string& log_file) {
     }
     
     initialized_ = true;
-    logInfo("Weather station started");
     return true;
 }
 

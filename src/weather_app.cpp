@@ -104,6 +104,7 @@ bool WeatherApp::initialize(const std::string& config_file, bool debug) {
     
     // Initialize logger
     Logger::getInstance().initialize();
+    Logger::getInstance().logInfo("Weather station started");
     
     // Set timezone environment variable for correct local time display
     if (!config_.timezone.empty()) {
