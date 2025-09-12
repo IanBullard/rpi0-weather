@@ -10,20 +10,25 @@ project(rpi0-weather
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Build options
+option(BUILD_EMULATOR "Build with SDL3 emulator support (not needed for Pi hardware)" ON)
+
 # CPM (CMake Package Manager) setup
 include(cmake/CPM.cmake)
 
-# Add SDL3 using CPM
-CPMAddPackage(
-    NAME SDL3
-    GITHUB_REPOSITORY libsdl-org/SDL
-    GIT_TAG main
-    OPTIONS
-        "SDL_SHARED OFF"
-        "SDL_STATIC ON"
-        "SDL_TEST OFF"
-        "SDL_DISABLE_INSTALL ON"
-)
+# Conditionally add SDL3 using CPM (only for emulator builds)
+if(BUILD_EMULATOR)
+    CPMAddPackage(
+        NAME SDL3
+        GITHUB_REPOSITORY libsdl-org/SDL
+        GIT_TAG main
+        OPTIONS
+            "SDL_SHARED OFF"
+            "SDL_STATIC ON"
+            "SDL_TEST OFF"
+            "SDL_DISABLE_INSTALL ON"
+    )
+endif()
 
 # Add cpp-httplib for HTTP requests
 CPMAddPackage(
@@ -50,11 +55,11 @@ CPMAddPackage(
     DOWNLOAD_ONLY YES
 )
 
-if(SDL3_ADDED)
+if(BUILD_EMULATOR AND SDL3_ADDED)
     message(STATUS "SDL3 added via CPM - enabling emulator support")
     add_definitions(-DHAVE_SDL3)
 else()
-    message(STATUS "SDL3 not available - building without emulator support")
+    message(STATUS "Building without emulator support (SDL3 disabled)")
 endif()
 
 # Build inky_c library
@@ -96,7 +101,7 @@ add_executable(${PROJECT_NAME} ${SOURCES})
 
 # Link libraries
 target_link_libraries(${PROJECT_NAME} PRIVATE inky_c)
-if(SDL3_ADDED)
+if(BUILD_EMULATOR AND SDL3_ADDED)
     target_link_libraries(${PROJECT_NAME} PRIVATE SDL3::SDL3)
 endif()
 if(httplib_ADDED)

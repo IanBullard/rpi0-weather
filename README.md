@@ -32,7 +32,12 @@ cd rpi0-weather
 git submodule update --init --recursive
 
 # Build
+# For development with emulator support (default)
 cmake .
+
+# For Raspberry Pi (no emulator, avoids SDL dependencies)
+cmake -DBUILD_EMULATOR=OFF .
+
 make
 
 # Run main application (with SDL3 emulator)
