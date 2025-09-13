@@ -76,6 +76,7 @@ WeatherData WeatherService::fetchFromAPI() {
             }
             
             forecast_grid_url_ = points.forecast_grid_url;
+            forecast_url_ = points.forecast_url;
             stations_url_ = points.stations_url;
             
             // Get nearest station
@@ -115,28 +116,39 @@ WeatherData WeatherService::fetchFromAPI() {
             data.weather_description = obs.text_description;
         }
         
-        // Step 3: Get forecast data
-        NWSForecast forecast = client_->getForecast(forecast_grid_url_);
+        // Step 3: Get forecast data with NWS icons
+        NWSForecast forecast = client_->getForecastWithIcon(forecast_url_);
         if (!forecast.valid) {
-            std::cout << "Warning: Could not get forecast data" << std::endl;
+            std::cout << "Warning: Could not get forecast with icon data" << std::endl;
+            
+            // Fallback to grid data for temperature info
+            NWSForecast grid_forecast = client_->getForecast(forecast_grid_url_);
+            if (grid_forecast.valid) {
+                if (grid_forecast.temperature_max_celsius.has_value()) {
+                    data.temperature_max_c = grid_forecast.temperature_max_celsius.value();
+                }
+                if (grid_forecast.temperature_min_celsius.has_value()) {
+                    data.temperature_min_c = grid_forecast.temperature_min_celsius.value();
+                }
+                if (grid_forecast.precipitation_chance_percent.has_value()) {
+                    data.precipitation_chance_percent = grid_forecast.precipitation_chance_percent.value();
+                }
+            }
         } else {
+            // Use forecast data with NWS-provided icon
             if (forecast.temperature_max_celsius.has_value()) {
                 data.temperature_max_c = forecast.temperature_max_celsius.value();
             }
-            if (forecast.temperature_min_celsius.has_value()) {
-                data.temperature_min_c = forecast.temperature_min_celsius.value();
-            }
-            if (forecast.precipitation_chance_percent.has_value()) {
-                data.precipitation_chance_percent = forecast.precipitation_chance_percent.value();
+            
+            // Use NWS-provided weather icon directly
+            if (!forecast.weather_icon.empty()) {
+                data.weather_icon = forecast.weather_icon;
+            } else {
+                data.weather_icon = "na";  // Unknown/fallback icon
             }
             
-            // Select appropriate weather icon
-            int sky_cover = forecast.sky_cover_percent.value_or(0);
-            auto now = std::time(nullptr);
-            auto tm = *std::localtime(&now);
-            bool is_day = (tm.tm_hour >= 6 && tm.tm_hour < 18);
-            
-            data.weather_icon = selectWeatherIcon(forecast.weather_condition, sky_cover, is_day);
+            // Use detailed forecast as weather description
+            data.weather_description = forecast.weather_condition;
         }
         
         // Mark as valid if we got at least some data
@@ -161,23 +173,3 @@ WeatherData WeatherService::fetchFromAPI() {
     return data;
 }
 
-std::string WeatherService::selectWeatherIcon(const std::string& condition, int sky_cover, bool is_day) {
-    // Map weather conditions to numbered icon names (00-47)
-    // Based on common weather icon mapping schemes
-    
-    if (condition == "thunderstorms") {
-        return is_day ? "17" : "18";  // Thunderstorm day/night
-    } else if (condition == "rain" || condition == "rain_showers") {
-        return is_day ? "09" : "10";  // Rain day/night
-    } else if (condition == "snow" || condition == "snow_showers") {
-        return is_day ? "13" : "14";  // Snow day/night
-    } else if (condition == "fog") {
-        return "20";  // Fog
-    } else if (sky_cover > 80) {
-        return "04";  // Cloudy
-    } else if (sky_cover > 25) {
-        return is_day ? "02" : "03";  // Partly cloudy day/night
-    } else {
-        return is_day ? "01" : "31";  // Clear day/night
-    }
-}

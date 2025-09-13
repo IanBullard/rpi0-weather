@@ -19,7 +19,8 @@ WeatherData create_mock_weather_data() {
     data.precipitation_chance_percent = 20;
     
     // Mock condition
-    data.weather_icon = "clear_day";
+    data.weather_icon = "02";  // Partly cloudy day (matches 20% precipitation)
+    data.weather_description = "Partly Cloudy";
     data.location = "Mount Marcy";
     
     data.is_valid = true;

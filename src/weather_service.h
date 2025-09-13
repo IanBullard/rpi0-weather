@@ -31,7 +31,6 @@ public:
     
 private:
     WeatherData fetchFromAPI();
-    std::string selectWeatherIcon(const std::string& condition, int sky_cover, bool is_day);
     bool isCacheValid() const;
     
     std::unique_ptr<NWSClient> client_;
@@ -47,6 +46,7 @@ private:
     
     // Cached API endpoints from points lookup
     std::string forecast_grid_url_;
+    std::string forecast_url_;
     std::string stations_url_;
     std::string nearest_station_id_;
     bool endpoints_initialized_;

@@ -290,3 +290,110 @@ NWSForecast NWSClient::getForecast(const std::string& forecast_grid_url) {
     
     return result;
 }
+
+NWSForecast NWSClient::getForecastWithIcon(const std::string& forecast_url) {
+    NWSForecast result;
+    
+    auto json_opt = fetchJSON(forecast_url);
+    if (!json_opt.has_value()) {
+        return result;
+    }
+    
+    try {
+        const auto& json = json_opt.value();
+        const auto& properties = json["properties"];
+        const auto& periods = properties["periods"];
+        
+        if (periods.empty()) {
+            last_error_ = "No forecast periods found";
+            return result;
+        }
+        
+        // Get the first period (current/today's forecast)
+        const auto& period = periods[0];
+        
+        result.valid = true;
+        
+        // Extract temperature
+        if (period.contains("temperature") && !period["temperature"].is_null()) {
+            double temp_f = period["temperature"].get<double>();
+            result.temperature_max_celsius = (temp_f - 32.0) * 5.0 / 9.0;  // Convert F to C
+        }
+        
+        // Extract weather icon URL and extract icon name
+        if (period.contains("icon") && !period["icon"].is_null()) {
+            std::string icon_url = period["icon"].get<std::string>();
+            result.weather_icon = extractIconName(icon_url);
+        }
+        
+        // Extract detailed forecast and short forecast
+        if (period.contains("detailedForecast") && !period["detailedForecast"].is_null()) {
+            result.weather_condition = period["detailedForecast"].get<std::string>();
+        }
+        
+    } catch (const std::exception& e) {
+        last_error_ = std::string("Failed to parse forecast with icon data: ") + e.what();
+        result.valid = false;
+    }
+    
+    return result;
+}
+
+std::string NWSClient::extractIconName(const std::string& icon_url) {
+    // NWS icon URLs are like: https://api.weather.gov/icons/land/day/skc?size=medium
+    // We want to extract the weather condition part (e.g., "skc")
+    
+    // Find the last slash before the query parameters
+    size_t query_pos = icon_url.find('?');
+    std::string url_without_query = (query_pos != std::string::npos) ? 
+                                   icon_url.substr(0, query_pos) : icon_url;
+    
+    size_t last_slash = url_without_query.find_last_of('/');
+    if (last_slash == std::string::npos) {
+        return "na";  // fallback to unknown icon
+    }
+    
+    std::string icon_name = url_without_query.substr(last_slash + 1);
+    
+    // Map NWS icon names to our numbered icon system
+    return mapNWSIconToNumber(icon_name);
+}
+
+std::string NWSClient::mapNWSIconToNumber(const std::string& nws_icon) {
+    // Map NWS icon names to our numbered weather icons (00-47)
+    // Based on https://api.weather.gov/icons documentation
+    
+    if (nws_icon == "skc") return "01";  // Sky Clear -> Clear Day
+    if (nws_icon == "few") return "02";  // Few Clouds -> Partly Cloudy Day
+    if (nws_icon == "sct") return "02";  // Scattered Clouds -> Partly Cloudy Day
+    if (nws_icon == "bkn") return "03";  // Broken Clouds -> Mostly Cloudy
+    if (nws_icon == "ovc") return "04";  // Overcast -> Cloudy
+    
+    // Rain conditions
+    if (nws_icon == "ra" || nws_icon == "rain") return "09";  // Rain -> Rain Day
+    if (nws_icon == "shra") return "09";  // Showers -> Rain Day
+    if (nws_icon == "hi_shwrs") return "09";  // Heavy Showers -> Rain Day
+    
+    // Snow conditions
+    if (nws_icon == "sn" || nws_icon == "snow") return "13";  // Snow -> Snow Day
+    if (nws_icon == "mix") return "13";  // Rain/Snow Mix -> Snow Day
+    
+    // Thunderstorm conditions
+    if (nws_icon == "tsra") return "17";  // Thunderstorm -> Thunderstorm Day
+    if (nws_icon == "hi_tsra") return "17";  // Heavy Thunderstorm -> Thunderstorm Day
+    
+    // Fog/Haze conditions
+    if (nws_icon == "fg") return "20";  // Fog -> Fog
+    if (nws_icon == "haze") return "20";  // Haze -> Fog
+    
+    // Wind conditions
+    if (nws_icon == "wind") return "02";  // Windy -> Partly Cloudy (no specific wind icon)
+    
+    // Default fallback based on common patterns
+    if (nws_icon.find("rain") != std::string::npos) return "09";
+    if (nws_icon.find("snow") != std::string::npos) return "13";
+    if (nws_icon.find("storm") != std::string::npos) return "17";
+    if (nws_icon.find("cloud") != std::string::npos) return "03";
+    
+    return "na";  // Unknown condition
+}

@@ -34,6 +34,7 @@ struct NWSForecast {
     std::optional<int> sky_cover_percent;
     std::string weather_condition;
     std::string weather_intensity;
+    std::string weather_icon;  // Icon URL or extracted icon name from NWS API
 };
 
 struct NWSPoints {
@@ -57,6 +58,7 @@ public:
     std::vector<NWSStation> getStations(const std::string& stations_url, double lat, double lon);
     NWSObservation getLatestObservation(const std::string& station_id);
     NWSForecast getForecast(const std::string& forecast_grid_url);
+    NWSForecast getForecastWithIcon(const std::string& forecast_url);  // Get forecast with weather icon
     
     // Utility methods
     void setUserAgent(const std::string& user_agent);
@@ -66,6 +68,8 @@ public:
 private:
     std::optional<nlohmann::json> fetchJSON(const std::string& url);
     std::optional<double> getValueAtTime(const nlohmann::json& data, const std::string& field);
+    std::string extractIconName(const std::string& icon_url);  // Extract icon name from NWS icon URL
+    std::string mapNWSIconToNumber(const std::string& nws_icon);  // Map NWS icon names to numbered icons
     
     std::string user_agent_;
     int timeout_seconds_;
