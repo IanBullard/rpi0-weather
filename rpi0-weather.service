@@ -5,7 +5,9 @@ Wants=network-online.target
 
 [Service]
 Type=simple
+# Note: Change 'pi' to your actual username (e.g., skywick)
 User=pi
+# Note: Update paths to match your installation directory
 WorkingDirectory=/home/pi/rpi0-weather
 ExecStart=/home/pi/rpi0-weather/rpi0-weather
 Restart=always
