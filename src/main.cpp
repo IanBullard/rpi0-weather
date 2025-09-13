@@ -5,12 +5,14 @@
 #include <string>
 
 void print_usage(const char* prog_name) {
+    std::cout << "rpi0-weather v1.0.0 - Raspberry Pi Zero Weather Station\n";
     std::cout << "Usage: " << prog_name << " [options]\n";
     std::cout << "Options:\n";
     std::cout << "  --test <output.png>       Render one frame and save as PNG\n";
     std::cout << "  --test-icons <output.png> Render all weather icons in grid and save as PNG\n";
     std::cout << "  --config <file>           Use specified config file (default: config.json)\n";
     std::cout << "  --debug                   Enable verbose debug output\n";
+    std::cout << "  --version                 Show version information\n";
     std::cout << "  --help                    Show this help message\n";
 }
 
@@ -34,6 +36,9 @@ int main(int argc, char* argv[]) {
             config_file = argv[++i];
         } else if (arg == "--debug") {
             debug_mode = true;
+        } else if (arg == "--version") {
+            std::cout << "rpi0-weather v1.0.0" << std::endl;
+            return 0;
         } else if (arg == "--help") {
             print_usage(argv[0]);
             return 0;
