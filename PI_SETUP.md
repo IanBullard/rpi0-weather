@@ -53,18 +53,28 @@ sudo raspi-config
 
 ### 1. Install System Dependencies
 ```bash
-sudo apt install -y build-essential cmake git libcurl4-openssl-dev nlohmann-json3-dev
+sudo apt install -y build-essential cmake git pkg-config
 ```
 
-### 2. Install Inky Library
+### 2. Install Weather Station Dependencies
+
+**Option A: Fast Build (Recommended for Pi) - Use System Packages**
+```bash
+# Install pre-compiled dependencies to avoid long build times
+sudo apt install -y nlohmann-json3-dev libstb-dev
+# Note: libhttplib-dev may not be available on all Pi OS versions
+# If available: sudo apt install -y libhttplib-dev
+```
+
+**Option B: Standard Build - Download from Source**
+```bash
+# No additional packages needed - CMake will download dependencies
+# This takes much longer but works on all systems
+```
+
+### 3. Install Inky Library
 ```bash
 curl -sSL https://get.pimoroni.com/inky | bash
-```
-
-### 3. Install Additional Libraries
-```bash
-# Install any missing dependencies for the project
-sudo apt install -y pkg-config
 ```
 
 ## Build and Deploy Application
@@ -74,17 +84,22 @@ sudo apt install -y pkg-config
 cd /home/pi
 git clone <your-repository-url> rpi0-weather
 cd rpi0-weather
-mkdir build
-cd build
 
-# Build (SDL3 emulator automatically disabled on ARM processors)
-cmake ..
+# Update submodules
+git submodule update --init --recursive
+
+# Build with fast system packages (recommended for Pi)
+cmake -DUSE_SYSTEM_PACKAGES=ON -DBUILD_EMULATOR=OFF .
 make -j$(nproc)
 
-# Note: The build system automatically detects Pi hardware and skips SDL3
-# If you need to explicitly control SDL3, use:
-# cmake -DBUILD_EMULATOR=OFF ..  # Force disable SDL3
-# cmake -DBUILD_EMULATOR=ON ..   # Force enable SDL3 (requires X11/Wayland packages)
+# Alternative: Standard build (downloads dependencies, takes longer)
+# cmake -DBUILD_EMULATOR=OFF .
+# make -j$(nproc)
+
+# Note: Build options
+# -DUSE_SYSTEM_PACKAGES=ON   # Use system packages for faster builds
+# -DBUILD_EMULATOR=OFF       # Disable SDL3 (automatic on ARM)
+# -DBUILD_EMULATOR=ON        # Enable SDL3 (requires desktop packages)
 ```
 
 ### 2. Configuration
