@@ -81,4 +81,7 @@ weather.log
 *.tmp
 *.temp
 
-rpi0-weather.*
+# Ignore the executable and logs, but keep service file
+rpi0-weather
+rpi0-weather.log
+rpi0-weather.png

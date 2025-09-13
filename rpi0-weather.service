@@ -1,0 +1,21 @@
+[Unit]
+Description=Raspberry Pi Zero Weather Station
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/rpi0-weather
+ExecStart=/home/pi/rpi0-weather/rpi0-weather
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+# Environment variables
+Environment=DISPLAY=:0
+Environment=SDL_VIDEODRIVER=dummy
+
+[Install]
+WantedBy=multi-user.target

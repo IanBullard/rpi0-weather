@@ -130,10 +130,15 @@ If this works without errors, proceed to the auto-start setup.
 ## Setup Auto-Start on Boot
 
 ### 1. Install Service File
+The `rpi0-weather.service` systemd service file is included in the repository and configured for the standard Pi setup.
+
 ```bash
+# Copy the included service file to systemd directory
 sudo cp rpi0-weather.service /etc/systemd/system/
 sudo systemctl daemon-reload
 ```
+
+Note: If you installed to a different location than `/home/pi/rpi0-weather`, edit the service file before copying to update the `WorkingDirectory` and `ExecStart` paths.
 
 ### 2. Enable the Service
 ```bash
