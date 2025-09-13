@@ -326,6 +326,11 @@ NWSForecast NWSClient::getForecastWithIcon(const std::string& forecast_url) {
             result.weather_icon = extractIconName(icon_url);
         }
         
+        // Extract precipitation probability
+        if (period.contains("probabilityOfPrecipitation") && period["probabilityOfPrecipitation"].contains("value") && !period["probabilityOfPrecipitation"]["value"].is_null()) {
+            result.precipitation_chance_percent = period["probabilityOfPrecipitation"]["value"].get<int>();
+        }
+        
         // Extract detailed forecast and short forecast
         if (period.contains("detailedForecast") && !period["detailedForecast"].is_null()) {
             result.weather_condition = period["detailedForecast"].get<std::string>();
@@ -356,44 +361,71 @@ std::string NWSClient::extractIconName(const std::string& icon_url) {
     std::string icon_name = url_without_query.substr(last_slash + 1);
     
     // Map NWS icon names to our numbered icon system
-    return mapNWSIconToNumber(icon_name);
+    std::string mapped = mapNWSIconToNumber(icon_name);
+    return mapped;
 }
 
 std::string NWSClient::mapNWSIconToNumber(const std::string& nws_icon) {
     // Map NWS icon names to our numbered weather icons (00-47)
     // Based on https://api.weather.gov/icons documentation
     
-    if (nws_icon == "skc") return "01";  // Sky Clear -> Clear Day
-    if (nws_icon == "few") return "02";  // Few Clouds -> Partly Cloudy Day
-    if (nws_icon == "sct") return "02";  // Scattered Clouds -> Partly Cloudy Day
-    if (nws_icon == "bkn") return "03";  // Broken Clouds -> Mostly Cloudy
-    if (nws_icon == "ovc") return "04";  // Overcast -> Cloudy
+    // Extract base icon name (remove comma and probability if present)
+    std::string base_icon = nws_icon;
+    size_t comma_pos = nws_icon.find(',');
+    if (comma_pos != std::string::npos) {
+        base_icon = nws_icon.substr(0, comma_pos);
+    }
+    
+    // For slight chance conditions, prefer partly cloudy over rain icon
+    // since "slight chance" typically means mostly clear with possibility
+    if (comma_pos != std::string::npos) {
+        std::string probability_str = nws_icon.substr(comma_pos + 1);
+        int probability = 0;
+        try {
+            probability = std::stoi(probability_str);
+        } catch (...) {
+            // Ignore parsing errors
+        }
+        
+        // If probability is 20% or less, use partly cloudy instead of precipitation icon
+        if (probability <= 20) {
+            if (base_icon.find("rain") != std::string::npos || base_icon.find("shwr") != std::string::npos) {
+                return "02";  // Partly Cloudy Day
+            }
+        }
+    }
+    
+    if (base_icon == "skc") return "01";  // Sky Clear -> Clear Day
+    if (base_icon == "few") return "02";  // Few Clouds -> Partly Cloudy Day
+    if (base_icon == "sct") return "02";  // Scattered Clouds -> Partly Cloudy Day
+    if (base_icon == "bkn") return "03";  // Broken Clouds -> Mostly Cloudy
+    if (base_icon == "ovc") return "04";  // Overcast -> Cloudy
     
     // Rain conditions
-    if (nws_icon == "ra" || nws_icon == "rain") return "09";  // Rain -> Rain Day
-    if (nws_icon == "shra") return "09";  // Showers -> Rain Day
-    if (nws_icon == "hi_shwrs") return "09";  // Heavy Showers -> Rain Day
+    if (base_icon == "ra" || base_icon == "rain") return "09";  // Rain -> Rain Day
+    if (base_icon == "shra" || base_icon == "rain_showers") return "09";  // Showers -> Rain Day
+    if (base_icon == "hi_shwrs") return "09";  // Heavy Showers -> Rain Day
     
     // Snow conditions
-    if (nws_icon == "sn" || nws_icon == "snow") return "13";  // Snow -> Snow Day
-    if (nws_icon == "mix") return "13";  // Rain/Snow Mix -> Snow Day
+    if (base_icon == "sn" || base_icon == "snow") return "13";  // Snow -> Snow Day
+    if (base_icon == "mix") return "13";  // Rain/Snow Mix -> Snow Day
     
     // Thunderstorm conditions
-    if (nws_icon == "tsra") return "17";  // Thunderstorm -> Thunderstorm Day
-    if (nws_icon == "hi_tsra") return "17";  // Heavy Thunderstorm -> Thunderstorm Day
+    if (base_icon == "tsra") return "17";  // Thunderstorm -> Thunderstorm Day
+    if (base_icon == "hi_tsra") return "17";  // Heavy Thunderstorm -> Thunderstorm Day
     
     // Fog/Haze conditions
-    if (nws_icon == "fg") return "20";  // Fog -> Fog
-    if (nws_icon == "haze") return "20";  // Haze -> Fog
+    if (base_icon == "fg") return "20";  // Fog -> Fog
+    if (base_icon == "haze") return "20";  // Haze -> Fog
     
     // Wind conditions
-    if (nws_icon == "wind") return "02";  // Windy -> Partly Cloudy (no specific wind icon)
+    if (base_icon == "wind") return "02";  // Windy -> Partly Cloudy (no specific wind icon)
     
     // Default fallback based on common patterns
-    if (nws_icon.find("rain") != std::string::npos) return "09";
-    if (nws_icon.find("snow") != std::string::npos) return "13";
-    if (nws_icon.find("storm") != std::string::npos) return "17";
-    if (nws_icon.find("cloud") != std::string::npos) return "03";
+    if (base_icon.find("rain") != std::string::npos) return "09";
+    if (base_icon.find("snow") != std::string::npos) return "13";
+    if (base_icon.find("storm") != std::string::npos) return "17";
+    if (base_icon.find("cloud") != std::string::npos) return "03";
     
     return "na";  // Unknown condition
 }

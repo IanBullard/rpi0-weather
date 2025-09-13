@@ -32,6 +32,7 @@ public:
 private:
     WeatherData fetchFromAPI();
     bool isCacheValid() const;
+    std::string determineWeatherIcon(const NWSForecast& forecast, const NWSObservation& obs) const;
     
     std::unique_ptr<NWSClient> client_;
     
